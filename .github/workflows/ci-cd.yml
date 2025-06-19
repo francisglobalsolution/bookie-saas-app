@@ -1,0 +1,153 @@
+name: Bookie CI/CD
+
+on:
+  pull_request:
+    branches: [main]  # Runs init/validate/plan for PRs to main
+  push:
+    branches: [main]   # Deploys dev & staging
+  workflow_dispatch:    # Manual QA/Prod deploys
+    inputs:
+      environment:
+        description: 'Environment to deploy (qa/prod)'
+        required: true
+        type: choice
+        options:
+          - qa
+          - prod
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  test:
+    name: Run Jest Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Jest
+        run: npm run test
+
+  terraform_pr_plan:
+    name: Terraform Plan (PR Only)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    environment: dev
+    needs: test
+    defaults:
+      run:
+        working-directory: ./.aws/workspaces/services
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Workspace
+        run: terraform workspace select bookie-dev || terraform workspace new bookie-dev
+
+      - name: Terraform Plan
+        run: terraform plan -var-file=../../../config/use1.dev.bk.tfvars
+
+  terraform_apply_dev_staging:
+    name: Apply Dev & Staging (Merge to Main)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: dev
+    needs: test
+    defaults:
+      run:
+        working-directory: ./.aws/workspaces/services
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate (Dev)
+        run: terraform validate
+
+      - name: Terraform Plan (Dev)
+        run: |
+          terraform workspace select bookie-dev || terraform workspace new bookie-dev
+          terraform plan -var-file=../../../config/use1.dev.bk.tfvars
+
+      - name: Apply Dev
+        run: terraform apply -auto-approve -var-file=../../../config/use1.dev.bk.tfvars
+
+      - name: Terraform Validate (Staging)
+        run: terraform validate
+
+      - name: Terraform Plan (Staging)
+        run: |
+          terraform workspace select bookie-staging || terraform workspace new bookie-staging
+          terraform plan -var-file=../../../config/use1.staging.bk.tfvars
+
+      - name: Apply Staging
+        run: terraform apply -auto-approve -var-file=../../../config/use1.staging.bk.tfvars
+
+  terraform_manual_qa_prod:
+    name: Manual Deploy QA/Prod
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    defaults:
+      run:
+        working-directory: ./.aws/workspaces/services
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: |
+          terraform workspace select bookie-${{ github.event.inputs.environment }} || terraform workspace new bookie-${{ github.event.inputs.environment }}
+          terraform plan -var-file=../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var-file=../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
