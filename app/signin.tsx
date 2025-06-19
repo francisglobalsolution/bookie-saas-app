@@ -20,7 +20,7 @@ export default function SignInScreen() {
       const user = await signIn({ email, password });
       setUser(user);
       router.push('/'); // Navigate to home after sign in
-    } catch (err) {
+    } catch {
       setError('Invalid email or password');
     }
   };
