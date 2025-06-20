@@ -58,7 +58,7 @@ jobs:
     environment: dev
     needs: test
     env:
-      TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
       TF_WORKSPACE: "bookie-dev"
     defaults:
@@ -72,12 +72,20 @@ jobs:
         with:
           terraform_version: 1.7.5
 
+      - name: Check if Terraform token is set
+        run: |
+          if [ -z "$TERRAFORM_TOKEN_app_terraform_io" ]; then
+            echo "❌ TERRAFORM_TOKEN_app_terraform_io is NOT set"
+            exit 1
+          else
+            echo "✅ TERRAFORM_TOKEN_app_terraform_io is set"
+          fi
+
       - name: Terraform Init
         run: terraform init
 
       - name: Terraform Validate
         run: terraform validate
-        
 
       - name: Terraform Plan
         run: terraform plan -var-file=../../../config/use1.dev.bk.tfvars
@@ -89,7 +97,7 @@ jobs:
     environment: dev
     needs: test
     env:
-      TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
       TF_WORKSPACE: "bookie-dev"
     defaults:
@@ -121,7 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
     env:
-      TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
       TF_WORKSPACE: bookie-${{ github.event.inputs.environment }}
     defaults:
