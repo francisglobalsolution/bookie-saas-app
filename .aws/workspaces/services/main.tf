@@ -1,7 +1,3 @@
-provider "aws" {
-  region = var.region
-}
-
 module "web" {
   source      = "../../modules/service"
   env         = var.env
