@@ -82,7 +82,7 @@ jobs:
           fi
 
       - name: Terraform Init
-        run: terraform init -reconfigure
+        run: terraform init -input=false
 
       - name: Select or create Terraform workspace
         run: terraform workspace select bookie-dev || terraform workspace new bookie-dev
@@ -115,7 +115,7 @@ jobs:
           terraform_version: 1.7.5
 
       - name: Terraform Init
-        run: terraform init -reconfigure
+        run: terraform init -input=false
 
       - name: Select or create Terraform workspace
         run: terraform workspace select bookie-dev || terraform workspace new bookie-dev
@@ -150,7 +150,7 @@ jobs:
           terraform_version: 1.7.5
 
       - name: Terraform Init
-        run: terraform init -reconfigure
+        run: terraform init -input=false
 
       - name: Select or create Terraform workspace
         run: terraform workspace select bookie-${{ github.event.inputs.environment }} || terraform workspace new bookie-${{ github.event.inputs.environment }}
