@@ -16,7 +16,8 @@ on:
           - prod
 
 jobs:
-  lint:
+  lint: # Run ESLint
+  # This job runs ESLint to check code quality
     name: Lint
     runs-on: ubuntu-latest
     steps:
@@ -33,7 +34,8 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
-  test:
+  test: # Run Jest Tests
+  # This job runs Jest tests to ensure code correctness
     name: Run Jest Tests
     runs-on: ubuntu-latest
     needs: lint
@@ -51,8 +53,9 @@ jobs:
       - name: Run Jest
         run: npm run test
 
-  terraform_pr_plan:
-    name: Terraform Plan (PR Only)
+  terraform_pr_plan_dev: # Terraform Plan for PRs
+    name: Terraform Initialize, Plan and Validate dev
+    # This job runs Terraform init, validate, and plan for the dev environment
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     environment: dev
@@ -63,26 +66,123 @@ jobs:
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services/dev
+        working-directory: ./.aws/workspaces/services
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Terraform
+      - name: Setup Dev Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.5
 
-      - name: Terraform Init
-        run: terraform init -input=false
+      - name: Terraform Init (dev)
+        run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces/name=bookie-dev"
 
-      - name: Terraform Validate
+
+      - name: Terraform Validate Dev
         run: terraform validate
 
-      - name: Terraform Plan
+      - name: Terraform Plan Dev
         run: terraform plan -var-file=../../../config/use1.dev.bk.tfvars
 
-  terraform_apply_dev_staging:
-    name: Apply Dev & Staging (Merge to Main)
+  terraform_pr_plan_staging: # Terraform Plan for PRs
+    name: Terraform Initialize, Plan and Validate staging
+  # This job runs Terraform init, validate, and plan for the staging environment
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    environment: staging
+    needs: test
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
+    defaults:
+      run:
+        working-directory: ./.aws/workspaces/services
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Staging Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init (staging)
+        run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces/name=bookie-staging"
+
+
+      - name: Terraform Validate staging
+        run: terraform validate
+
+      - name: Terraform Plan staging
+        run: terraform plan -var-file=../../../config/use1.staging.bk.tfvars
+  
+  terraform_pr_plan_qa: # Terraform Plan for PRs
+      name:  Terraform Initialize, Plan and Validate qa
+    # This job runs Terraform init, validate, and plan for the QA environment
+      if: github.event_name == 'pull_request'
+      runs-on: ubuntu-latest
+      environment: qa
+      needs: test
+      env:
+        TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+        TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+        TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
+      defaults:
+        run:
+          working-directory: ./.aws/workspaces/services
+      steps:
+        - uses: actions/checkout@v4
+
+        - name: Setup QA Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: 1.7.5
+
+        - name: Terraform Init (qa)
+          run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces/name=bookie-qa"
+
+
+        - name: Terraform Validate qa
+          run: terraform validate
+
+        - name: Terraform Plan qa
+          run: terraform plan -var-file=../../../config/use1.qa.bk.tfvars
+
+  terraform_pr_plan_prod: # Terraform Plan for PRs
+    name: Terraform Initialize, Plan and Validate prod
+    # This job runs Terraform init, validate, and plan for the prod environment
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    environment: prod
+    needs: test
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
+    defaults:
+      run:
+        working-directory: ./.aws/workspaces/services
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Prod Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init (prod)
+        run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces/name=bookie-prod"
+
+
+      - name: Terraform Validate prod
+        run: terraform validate
+
+      - name: Terraform Plan prod
+        run: terraform plan -var-file=../../../config/use1.prod.bk.tfvars
+
+  dev_deployment_on_merge: # Terraform Plan for PRs
+    name: Deploy Dev on (Merge to Main)
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: dev
@@ -93,55 +193,125 @@ jobs:
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services/dev
+        working-directory: ./.aws/workspaces/services
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Terraform
+      - name: Setup dev Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.5
 
-      - name: Terraform Init
-        run: terraform init -input=false
+      - name: Terraform Init (dev)
+        run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces/name=bookie-dev"
 
-      - name: Terraform Validate
+
+      - name: Terraform Validate Dev
         run: terraform validate
 
-      - name: Terraform Plan
+      - name: Terraform Plan Dev
         run: terraform plan -var-file=../../../config/use1.dev.bk.tfvars
-
-      - name: Apply Dev
+      
+      - name: Terraform Apply Dev
         run: terraform apply -auto-approve -var-file=../../../config/use1.dev.bk.tfvars
 
-  terraform_manual_qa_prod:
-    name: Manual Deploy QA/Prod
-    if: github.event_name == 'workflow_dispatch'
+  staging_deployment_on_merge: # Terraform Plan for PRs
+      name: DeploysStaging on (Merge to Main)
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      runs-on: ubuntu-latest
+      environment: staging
+      needs: test
+      env:
+        TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+        TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+        TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
+      defaults:
+        run:
+          working-directory: ./.aws/workspaces/services
+      steps:
+        - uses: actions/checkout@v4
+
+        - name: Setup staging Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: 1.7.5
+
+        - name: Terraform Init (staging)
+          run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces/name=bookie-staging"
+
+
+        - name: Terraform Validate Staging
+          run: terraform validate
+
+        - name: Terraform Plan Staging
+          run: terraform plan -var-file=../../../config/use1.staging.bk.tfvars
+        
+        - name: Terraform Apply Staging
+          run: terraform apply -auto-approve -var-file=../../../config/use1.staging.bk.tfvars
+
+
+  approve_and_delpoy_qa: # Terraform Plan for PRs
+    name: Approve and Deploy QA 
+    if: github.event_name == 'workflow_dispatch'  && github.event.inputs.environment == 'qa'
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
+    environment: qa
+    needs: test
     env:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services/${{ github.event.inputs.environment }}
+        working-directory: ./.aws/workspaces/services
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Terraform
+      - name: Setup QA Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.5
 
-      - name: Terraform Init
-        run: terraform init -input=false
+      - name: Terraform Init (qa)
+        run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces/name=bookie-qa" 
 
-      - name: Terraform Validate
+      - name: Terraform Validate QA
         run: terraform validate
 
-      - name: Terraform Plan
-        run: terraform plan -var-file=../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
+      - name: Terraform Plan QA
+        run: terraform plan -var-file=../../../config/use1.qa.bk.tfvars
 
-      - name: Terraform Apply
-        run: terraform apply -auto-approve -var-file=../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
+      - name: Terraform Apply QA
+        run: terraform apply -auto-approve -var-file=../../../config/use1.qa.bk.tfvars
+
+  approve_and_deploy_prod: # Terraform Plan for PRs
+    name: Approve and Deploy Prod
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
+    runs-on: ubuntu-latest
+    environment: prod
+    needs: test
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
+    defaults:
+      run:
+        working-directory: ./.aws/workspaces/services
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Prod Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init (prod)
+        run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces/name=bookie-prod"
+
+      - name: Terraform Validate Prod
+        run: terraform validate
+
+      - name: Terraform Plan Prod
+        run: terraform plan -var-file=../../../config/use1.prod.bk.tfvars
+
+      - name: Terraform Apply Prod
+        run: terraform apply -auto-approve -var-file=../../../config/use1.prod.bk.tfvars
