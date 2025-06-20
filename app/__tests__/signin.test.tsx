@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 import SignInScreen from '../signin';
 import { UserProvider } from '../../components/UserContext';
 import { NavigationContainer } from '@react-navigation/native';
