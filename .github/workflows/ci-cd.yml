@@ -58,7 +58,7 @@ jobs:
     environment: dev
     needs: test
     env:
-      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
     defaults:
       run:
         working-directory: ./.aws/workspaces/services
@@ -89,7 +89,7 @@ jobs:
     environment: dev
     needs: test
     env:
-      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
     defaults:
       run:
         working-directory: ./.aws/workspaces/services
@@ -132,7 +132,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
     env:
-      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
     defaults:
       run:
         working-directory: ./.aws/workspaces/services
