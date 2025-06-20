@@ -82,6 +82,9 @@ jobs:
             echo "✅ TERRAFORM_TOKEN_app_terraform_io is set"
           fi
 
+      - name: Select or create Terraform workspace
+        run: terraform workspace select bookie-dev || terraform workspace new bookie-dev
+
       - name: Terraform Init
         run: terraform init
 
@@ -112,6 +115,9 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.5
+
+      - name: Select or create Terraform workspace
+        run: terraform workspace select bookie-dev || terraform workspace new bookie-dev
 
       - name: Terraform Init
         run: terraform init
@@ -145,6 +151,9 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.5
+
+      - name: Select or create Terraform workspace
+        run: terraform workspace select bookie-${{ github.event.inputs.environment }} || terraform workspace new bookie-${{ github.event.inputs.environment }}
 
       - name: Terraform Init
         run: terraform init
