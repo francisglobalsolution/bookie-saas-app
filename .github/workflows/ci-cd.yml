@@ -78,7 +78,7 @@ jobs:
       - name: Terraform Init (dev)
         run: terraform init -input=false -reconfigure
         env:
-          TF_WORKSPACE: bookie-dev
+          TF_WORKSPACE: dev
 
 
 
@@ -113,7 +113,7 @@ jobs:
       - name: Terraform Init (staging)
         run: terraform init -input=false -reconfigure
         env:
-          TF_WORKSPACE: bookie-staging
+          TF_WORKSPACE: staging
 
 
 
@@ -148,7 +148,7 @@ jobs:
         - name: Terraform Init (qa)
           run: terraform init -input=false -reconfigure
           env:
-            TF_WORKSPACE: bookie-qa
+            TF_WORKSPACE: qa
 
 
 
@@ -183,7 +183,7 @@ jobs:
       - name: Terraform Init (prod)
         run: terraform init -input=false -reconfigure
         env:
-          TF_WORKSPACE: bookie-prod
+          TF_WORKSPACE: prod
 
 
 
@@ -218,7 +218,7 @@ jobs:
       - name: Terraform Init (dev)
         run: terraform init -input=false -reconfigure
         env:
-          TF_WORKSPACE: bookie-dev
+          TF_WORKSPACE: dev
 
 
 
@@ -255,7 +255,7 @@ jobs:
         - name: Terraform Init (staging)
           run: terraform init -input=false -reconfigure
           env:
-            TF_WORKSPACE: bookie-staging
+            TF_WORKSPACE: staging
 
 
 
@@ -294,7 +294,7 @@ jobs:
       - name: Terraform Init (qa)
         run: terraform init -input=false -reconfigure
         env:
-          TF_WORKSPACE: bookie-qa
+          TF_WORKSPACE: qa
 
 
       - name: Terraform Validate QA
@@ -330,7 +330,7 @@ jobs:
       - name: Terraform Init (prod)
         run: terraform init -input=false -reconfigure
         env:
-          TF_WORKSPACE: bookie-prod
+          TF_WORKSPACE: prod
 
 
 
