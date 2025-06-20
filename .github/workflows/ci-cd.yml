@@ -76,7 +76,8 @@ jobs:
           terraform_version: 1.7.5
 
       - name: Terraform Init (dev)
-        run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces.name=bookie-dev"
+        run: terraform init -reconfigure
+
 
 
       - name: Terraform Validate Dev
@@ -108,7 +109,7 @@ jobs:
           terraform_version: 1.7.5
 
       - name: Terraform Init (staging)
-        run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces.name=bookie-staging"
+        run: terraform init -reconfigure
 
 
       - name: Terraform Validate staging
@@ -140,7 +141,7 @@ jobs:
             terraform_version: 1.7.5
 
         - name: Terraform Init (qa)
-          run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces.name=bookie-qa"
+          run: terraform init -reconfigure
 
 
         - name: Terraform Validate qa
@@ -172,7 +173,8 @@ jobs:
           terraform_version: 1.7.5
 
       - name: Terraform Init (prod)
-        run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces.name=bookie-prod"
+        run: terraform init -reconfigure
+
 
 
       - name: Terraform Validate prod
@@ -203,7 +205,7 @@ jobs:
           terraform_version: 1.7.5
 
       - name: Terraform Init (dev)
-        run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces.name=bookie-dev"
+        run: terraform init -reconfigure
 
 
       - name: Terraform Validate Dev
@@ -237,7 +239,8 @@ jobs:
             terraform_version: 1.7.5
 
         - name: Terraform Init (staging)
-          run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces.name=bookie-staging"
+          run: terraform init -reconfigure
+
 
 
         - name: Terraform Validate Staging
@@ -272,7 +275,7 @@ jobs:
           terraform_version: 1.7.5
 
       - name: Terraform Init (qa)
-        run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces.name=bookie-qa" 
+        run: terraform init -reconfigure
 
       - name: Terraform Validate QA
         run: terraform validate
@@ -305,7 +308,8 @@ jobs:
           terraform_version: 1.7.5
 
       - name: Terraform Init (prod)
-        run: terraform init -reconfigure -backend-config="organization=Francis_Global_Solution" -backend-config="workspaces.name=bookie-prod"
+        run: terraform init -reconfigure
+
 
       - name: Terraform Validate Prod
         run: terraform validate
