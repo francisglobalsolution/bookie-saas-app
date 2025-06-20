@@ -58,7 +58,9 @@ jobs:
     environment: dev
     needs: test
     env:
-      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
+      TF_WORKSPACE: "bookie-dev"
     defaults:
       run:
         working-directory: ./.aws/workspaces/services
@@ -75,9 +77,7 @@ jobs:
 
       - name: Terraform Validate
         run: terraform validate
-
-      - name: Terraform Workspace
-        run: terraform workspace select bookie-dev || terraform workspace new bookie-dev
+        
 
       - name: Terraform Plan
         run: terraform plan -var-file=../../../config/use1.dev.bk.tfvars
@@ -89,50 +89,9 @@ jobs:
     environment: dev
     needs: test
     env:
-      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-    defaults:
-      run:
-        working-directory: ./.aws/workspaces/services
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.7.5
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Validate (Dev)
-        run: terraform validate
-
-      - name: Terraform Plan (Dev)
-        run: |
-          terraform workspace select bookie-dev || terraform workspace new bookie-dev
-          terraform plan -var-file=../../../config/use1.dev.bk.tfvars
-
-      - name: Apply Dev
-        run: terraform apply -auto-approve -var-file=../../../config/use1.dev.bk.tfvars
-
-      - name: Terraform Validate (Staging)
-        run: terraform validate
-
-      - name: Terraform Plan (Staging)
-        run: |
-          terraform workspace select bookie-staging || terraform workspace new bookie-staging
-          terraform plan -var-file=../../../config/use1.staging.bk.tfvars
-
-      - name: Apply Staging
-        run: terraform apply -auto-approve -var-file=../../../config/use1.staging.bk.tfvars
-
-  terraform_manual_qa_prod:
-    name: Manual Deploy QA/Prod
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
-    env:
-      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
+      TF_WORKSPACE: "bookie-dev"
     defaults:
       run:
         working-directory: ./.aws/workspaces/services
@@ -151,9 +110,39 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: |
-          terraform workspace select bookie-${{ github.event.inputs.environment }} || terraform workspace new bookie-${{ github.event.inputs.environment }}
-          terraform plan -var-file=../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
+        run: terraform plan -var-file=../../../config/use1.dev.bk.tfvars
+
+      - name: Apply Dev
+        run: terraform apply -auto-approve -var-file=../../../config/use1.dev.bk.tfvars
+
+  terraform_manual_qa_prod:
+    name: Manual Deploy QA/Prod
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    env:
+      TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
+      TF_WORKSPACE: bookie-${{ github.event.inputs.environment }}
+    defaults:
+      run:
+        working-directory: ./.aws/workspaces/services
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -var-file=../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
 
       - name: Terraform Apply
         run: terraform apply -auto-approve -var-file=../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
