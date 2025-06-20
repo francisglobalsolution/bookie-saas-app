@@ -63,7 +63,7 @@ jobs:
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services
+        working-directory: ./.aws/workspaces/services/dev
     steps:
       - uses: actions/checkout@v4
 
@@ -71,15 +71,6 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.5
-
-      - name: Check if Terraform token is set
-        run: |
-          if [ -z "$TERRAFORM_TOKEN_app_terraform_io" ]; then
-            echo "❌ TERRAFORM_TOKEN_app_terraform_io is NOT set"
-            exit 1
-          else
-            echo "✅ TERRAFORM_TOKEN_app_terraform_io is set"
-          fi
 
       - name: Terraform Init
         run: terraform init -input=false
@@ -91,7 +82,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -var-file=../../../config/use1.dev.bk.tfvars
+        run: terraform plan -var-file=../../../../config/use1.dev.bk.tfvars
 
   terraform_apply_dev_staging:
     name: Apply Dev & Staging (Merge to Main)
@@ -105,7 +96,7 @@ jobs:
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services
+        working-directory: ./.aws/workspaces/services/dev
     steps:
       - uses: actions/checkout@v4
 
@@ -124,10 +115,10 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -var-file=../../../config/use1.dev.bk.tfvars
+        run: terraform plan -var-file=../../../../config/use1.dev.bk.tfvars
 
       - name: Apply Dev
-        run: terraform apply -auto-approve -var-file=../../../config/use1.dev.bk.tfvars
+        run: terraform apply -auto-approve -var-file=../../../../config/use1.dev.bk.tfvars
 
   terraform_manual_qa_prod:
     name: Manual Deploy QA/Prod
@@ -140,7 +131,7 @@ jobs:
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services
+        working-directory: ./.aws/workspaces/services/${{ github.event.inputs.environment }}
     steps:
       - uses: actions/checkout@v4
 
@@ -159,7 +150,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -var-file=../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
+        run: terraform plan -var-file=../../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var-file=../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
+        run: terraform apply -auto-approve -var-file=../../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
