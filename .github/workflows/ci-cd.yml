@@ -61,7 +61,6 @@ jobs:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
-      TF_WORKSPACE: "bookie-dev"
     defaults:
       run:
         working-directory: ./.aws/workspaces/services
@@ -86,7 +85,7 @@ jobs:
         run: terraform workspace select bookie-dev || terraform workspace new bookie-dev
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -reconfigure
 
       - name: Terraform Validate
         run: terraform validate
@@ -104,7 +103,6 @@ jobs:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
-      TF_WORKSPACE: "bookie-dev"
     defaults:
       run:
         working-directory: ./.aws/workspaces/services
@@ -120,7 +118,7 @@ jobs:
         run: terraform workspace select bookie-dev || terraform workspace new bookie-dev
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -reconfigure
 
       - name: Terraform Validate
         run: terraform validate
@@ -140,7 +138,6 @@ jobs:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
-      TF_WORKSPACE: bookie-${{ github.event.inputs.environment }}
     defaults:
       run:
         working-directory: ./.aws/workspaces/services
@@ -156,7 +153,7 @@ jobs:
         run: terraform workspace select bookie-${{ github.event.inputs.environment }} || terraform workspace new bookie-${{ github.event.inputs.environment }}
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -reconfigure
 
       - name: Terraform Validate
         run: terraform validate
