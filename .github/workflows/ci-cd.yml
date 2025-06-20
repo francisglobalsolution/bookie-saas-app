@@ -79,7 +79,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -var-file=../../../../config/use1.dev.bk.tfvars
+        run: terraform plan -var-file=../../../config/use1.dev.bk.tfvars
 
   terraform_apply_dev_staging:
     name: Apply Dev & Staging (Merge to Main)
@@ -109,10 +109,10 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -var-file=../../../../config/use1.dev.bk.tfvars
+        run: terraform plan -var-file=../../../config/use1.dev.bk.tfvars
 
       - name: Apply Dev
-        run: terraform apply -auto-approve -var-file=../../../../config/use1.dev.bk.tfvars
+        run: terraform apply -auto-approve -var-file=../../../config/use1.dev.bk.tfvars
 
   terraform_manual_qa_prod:
     name: Manual Deploy QA/Prod
@@ -141,7 +141,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -var-file=../../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
+        run: terraform plan -var-file=../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var-file=../../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
+        run: terraform apply -auto-approve -var-file=../../../config/use1.${{ github.event.inputs.environment }}.bk.tfvars
