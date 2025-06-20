@@ -58,7 +58,8 @@ jobs:
     environment: dev
     needs: test
     env:
-      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
       TF_WORKSPACE: "bookie-dev"
     defaults:
@@ -97,7 +98,8 @@ jobs:
     environment: dev
     needs: test
     env:
-      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
       TF_WORKSPACE: "bookie-dev"
     defaults:
@@ -129,7 +131,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
     env:
-      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
       TF_WORKSPACE: bookie-${{ github.event.inputs.environment }}
     defaults:
