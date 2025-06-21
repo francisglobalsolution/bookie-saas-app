@@ -1,9 +1,9 @@
 module "web" {
-  source          = "../../modules/service"
-  env             = var.env
-  region          = var.region
-  bucket_name     = aws_s3_bucket.service_bucket.bucket
-  distribution_id = aws_cloudfront_distribution.site.id
+  source              = "../../modules/service"
+  env                 = var.env
+  region              = var.region
+  bucket_name_prefix  = var.bucket_name_prefix
+  tags                = var.tags
 }
 
 
@@ -18,12 +18,13 @@ variable "region" {
   type        = string
 }
 
-variable "bucket_name" {
-  description = "Name of the S3 bucket used by the service"
+variable "bucket_name_prefix" {
+  description = "Prefix for the S3 bucket name"
   type        = string
 }
 
-variable "distribution_id" {
-  description = "CloudFront Distribution ID"
-  type        = string
+variable "tags" {
+  description = "Tags to apply to resources"
+  type        = map(string)
+  default     = {}
 }
