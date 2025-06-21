@@ -89,7 +89,7 @@ jobs:
         working-directory: ./.aws/workspaces/services
         env:
           TF_WORKSPACE: dev
-        run: terraform plan -var-file=../../config/use1.dev.bk.tfvars
+        run: terraform plan
 
   terraform_pr_plan_staging: # Terraform Plan for PRs
     name: Terraform Initialize, Plan and Validate staging
@@ -127,7 +127,7 @@ jobs:
         working-directory: ./.aws/workspaces/services
         env:
           TF_WORKSPACE: staging
-        run: terraform plan -var-file=../../config/use1.staging.bk.tfvars
+        run: terraform plan
   
   terraform_pr_plan_qa: # Terraform Plan for PRs
       name:  Terraform Initialize, Plan and Validate qa
@@ -165,7 +165,7 @@ jobs:
           working-directory: ./.aws/workspaces/services
           env:
             TF_WORKSPACE: qa
-          run: terraform plan -var-file=../../config/use1.qa.bk.tfvars
+          run: terraform plan
 
   terraform_pr_plan_prod: # Terraform Plan for PRs
     name: Terraform Initialize, Plan and Validate prod
@@ -204,7 +204,7 @@ jobs:
         working-directory: ./.aws/workspaces/services
         env:
           TF_WORKSPACE: prod
-        run: terraform plan -var-file=../../config/use1.prod.bk.tfvars
+        run: terraform plan
 
   dev_deployment_on_merge:
         name: Deploy Dev on (Merge to Main)
@@ -242,10 +242,10 @@ jobs:
             working-directory: ./.aws/workspaces/services
             env:
               TF_WORKSPACE: dev
-            run: terraform plan -var-file=../../config/use1.dev.bk.tfvars
+            run: terraform plan
           
           - name: Terraform Apply Dev
-            run: terraform apply -auto-approve -var-file=../../config/use1.dev.bk.tfvars
+            run: terraform apply -auto-approve
 
           - name: Export Terraform Outputs
             id: export
@@ -329,10 +329,10 @@ jobs:
           working-directory: ./.aws/workspaces/services
           env:
             TF_WORKSPACE: staging
-          run: terraform plan -var-file=../../config/use1.staging.bk.tfvars
+          run: terraform plan
         
         - name: Terraform Apply Staging
-          run: terraform apply -auto-approve -var-file=../../config/use1.staging.bk.tfvars
+          run: terraform apply -auto-approve
 
 
   approve_and_delpoy_qa: # Terraform Plan for PRs
@@ -366,10 +366,10 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan QA
-        run: terraform plan -var-file=../../config/use1.qa.bk.tfvars
+        run: terraform plan
 
       - name: Terraform Apply QA
-        run: terraform apply -auto-approve -var-file=../../config/use1.qa.bk.tfvars
+        run: terraform apply -auto-approve
 
   approve_and_deploy_prod: # Terraform Plan for PRs
     name: Approve and Deploy Prod
@@ -403,7 +403,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan Prod
-        run: terraform plan -var-file=../../config/use1.prod.bk.tfvars
+        run: terraform plan
 
       - name: Terraform Apply Prod
-        run: terraform apply -auto-approve -var-file=../../config/use1.prod.bk.tfvars
+        run: terraform apply -auto-approve
