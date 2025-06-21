@@ -86,6 +86,9 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan Dev
+        working-directory: ./.aws/workspaces/services
+        env:
+          TF_WORKSPACE: dev
         run: terraform plan -var-file=../../config/use1.dev.bk.tfvars
 
   terraform_pr_plan_staging: # Terraform Plan for PRs
@@ -121,6 +124,9 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan staging
+        working-directory: ./.aws/workspaces/services
+        env:
+          TF_WORKSPACE: staging
         run: terraform plan -var-file=../../config/use1.staging.bk.tfvars
   
   terraform_pr_plan_qa: # Terraform Plan for PRs
@@ -156,6 +162,9 @@ jobs:
           run: terraform validate
 
         - name: Terraform Plan qa
+          working-directory: ./.aws/workspaces/services
+          env:
+            TF_WORKSPACE: qa
           run: terraform plan -var-file=../../config/use1.qa.bk.tfvars
 
   terraform_pr_plan_prod: # Terraform Plan for PRs
@@ -192,6 +201,9 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan prod
+        working-directory: ./.aws/workspaces/services
+        env:
+          TF_WORKSPACE: prod
         run: terraform plan -var-file=../../config/use1.prod.bk.tfvars
 
   dev_deployment_on_merge:
@@ -227,6 +239,9 @@ jobs:
             run: terraform validate
 
           - name: Terraform Plan Dev
+            working-directory: ./.aws/workspaces/services
+            env:
+              TF_WORKSPACE: dev
             run: terraform plan -var-file=../../config/use1.dev.bk.tfvars
           
           - name: Terraform Apply Dev
@@ -311,6 +326,9 @@ jobs:
           run: terraform validate
 
         - name: Terraform Plan Staging
+          working-directory: ./.aws/workspaces/services
+          env:
+            TF_WORKSPACE: staging
           run: terraform plan -var-file=../../config/use1.staging.bk.tfvars
         
         - name: Terraform Apply Staging
