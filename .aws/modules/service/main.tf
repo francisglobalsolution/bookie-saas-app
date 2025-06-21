@@ -1,7 +1,3 @@
-variable "bucket_name_prefix" { type = string }
-variable "env"               { type = string }
-variable "tags"              { type = map(string) }
-
 resource "aws_s3_bucket" "service_bucket" {
   bucket = "${var.bucket_name_prefix}-${var.env}"
   force_destroy = true
