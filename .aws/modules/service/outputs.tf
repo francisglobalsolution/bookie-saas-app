@@ -1,3 +1,7 @@
 output "bucket_name" {
-  value = aws_s3_bucket.service_bucket.bucket
+  value = var.bucket_name
+}
+
+output "distribution_id" {
+  value = var.distribution_id
 }
