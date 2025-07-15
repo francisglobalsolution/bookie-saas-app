@@ -66,7 +66,7 @@ jobs:
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services
+        working-directory: ./.aws/workspaces/services/dev
     steps:
       - uses: actions/checkout@v4
 
@@ -86,7 +86,6 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan Dev
-        working-directory: ./.aws/workspaces/services
         env:
           TF_WORKSPACE: dev
         run: terraform plan
@@ -104,7 +103,7 @@ jobs:
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services
+        working-directory: ./.aws/workspaces/services/staging
     steps:
       - uses: actions/checkout@v4
 
@@ -124,7 +123,6 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan staging
-        working-directory: ./.aws/workspaces/services
         env:
           TF_WORKSPACE: staging
         run: terraform plan
@@ -142,7 +140,7 @@ jobs:
         TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
       defaults:
         run:
-          working-directory: ./.aws/workspaces/services
+          working-directory: ./.aws/workspaces/services/qa
       steps:
         - uses: actions/checkout@v4
 
@@ -162,7 +160,6 @@ jobs:
           run: terraform validate
 
         - name: Terraform Plan qa
-          working-directory: ./.aws/workspaces/services
           env:
             TF_WORKSPACE: qa
           run: terraform plan
@@ -180,7 +177,7 @@ jobs:
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services
+        working-directory: ./.aws/workspaces/services/prod
     steps:
       - uses: actions/checkout@v4
 
@@ -201,7 +198,6 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan prod
-        working-directory: ./.aws/workspaces/services
         env:
           TF_WORKSPACE: prod
         run: terraform plan
@@ -218,7 +214,7 @@ jobs:
           TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
         defaults:
           run:
-            working-directory: ./.aws/workspaces/services
+            working-directory: ./.aws/workspaces/services/dev
         outputs:
           bucket: ${{ steps.export.outputs.bucket }}
           dist: ${{ steps.export.outputs.dist }}
@@ -239,7 +235,6 @@ jobs:
             run: terraform validate
 
           - name: Terraform Plan Dev
-            working-directory: ./.aws/workspaces/services
             env:
               TF_WORKSPACE: dev
             run: terraform plan
@@ -305,7 +300,7 @@ jobs:
         TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
       defaults:
         run:
-          working-directory: ./.aws/workspaces/services
+          working-directory: ./.aws/workspaces/services/staging
       steps:
         - uses: actions/checkout@v4
 
@@ -347,7 +342,7 @@ jobs:
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services
+        working-directory: ./.aws/workspaces/services/qa
     steps:
       - uses: actions/checkout@v4
 
@@ -383,7 +378,7 @@ jobs:
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services
+        working-directory: ./.aws/workspaces/services/prod
     steps:
       - uses: actions/checkout@v4
 
