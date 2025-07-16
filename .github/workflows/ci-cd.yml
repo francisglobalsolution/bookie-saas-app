@@ -96,7 +96,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     environment: staging
-    needs: test
+    needs: terraform_pr_plan_dev
     env:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
@@ -133,7 +133,7 @@ jobs:
       if: github.event_name == 'pull_request'
       runs-on: ubuntu-latest
       environment: qa
-      needs: test
+      needs: terraform_pr_plan_staging
       env:
         TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
         TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
@@ -170,7 +170,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     environment: prod
-    needs: test
+    needs: terraform_pr_plan_qa
     env:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
