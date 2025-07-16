@@ -18,3 +18,16 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# These were also mentioned in the warning:
+variable "environment" {
+  type        = string
+  description = "Logical environment name"
+}
+
+variable "account_id" {
+  type        = string
+  description = "AWS Account ID"
+}
+
+
