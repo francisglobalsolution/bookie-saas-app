@@ -2,6 +2,7 @@
 
 account_id  = "665499488761"
 bucket_name   = "bookie-dev-assets"
+bucket_name_prefix = "bookie-dev" 
 service_name  = "booking-saas"
 environment   = "dev"
 env           = "dev"

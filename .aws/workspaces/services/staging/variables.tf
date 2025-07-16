@@ -31,3 +31,14 @@ variable "account_id" {
 }
 
 
+variable "bucket_name" {
+  type        = string
+  description = "Full bucket name"
+  default     = ""
+}
+
+variable "service_name" {
+  type        = string
+  description = "Name of the service"
+  default     = ""
+}

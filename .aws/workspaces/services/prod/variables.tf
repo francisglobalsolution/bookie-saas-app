@@ -30,3 +30,15 @@ variable "account_id" {
   description = "AWS Account ID"
 }
 
+
+variable "bucket_name" {
+  type        = string
+  description = "Full bucket name"
+  default     = ""
+}
+
+variable "service_name" {
+  type        = string
+  description = "Name of the service"
+  default     = ""
+}
