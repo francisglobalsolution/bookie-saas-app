@@ -1,10 +1,10 @@
 // TypeScript module declarations for static assets
 
-declare module '*.png' {
+declare module "*.png" {
   const value: string;
   export default value;
 }
-declare module '*.ttf' {
+declare module "*.ttf" {
   const value: string;
   export default value;
 }
