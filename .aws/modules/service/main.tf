@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "service_bucket" {
-  bucket = "${var.bucket_name_prefix}-${var.env}"
+  bucket        = "${var.bucket_name_prefix}-${var.env}"
   force_destroy = true
 
   tags = merge(var.tags, {
@@ -8,10 +8,10 @@ resource "aws_s3_bucket" "service_bucket" {
 }
 
 resource "aws_s3_bucket_public_access_block" "block" {
-  bucket              = aws_s3_bucket.service_bucket.id
-  block_public_acls   = true
-  block_public_policy = true
-  ignore_public_acls  = true
+  bucket                  = aws_s3_bucket.service_bucket.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
   restrict_public_buckets = true
 }
 
@@ -36,9 +36,9 @@ resource "aws_cloudfront_distribution" "site" {
   }
 
   default_cache_behavior {
-    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "s3-${aws_s3_bucket.service_bucket.id}"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = "s3-${aws_s3_bucket.service_bucket.id}"
     viewer_protocol_policy = "redirect-to-https"
 
     forwarded_values {
