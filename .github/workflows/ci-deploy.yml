@@ -1,0 +1,115 @@
+name: Deploy & Auto Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  dev_deployment_on_merge:
+    name: Deploy Dev on (Merge to Main)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: dev
+    needs: []
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    defaults:
+      run:
+        working-directory: ./.aws/workspaces/services/dev
+    outputs:
+      bucket: ${{ steps.export.outputs.bucket }}
+      dist: ${{ steps.export.outputs.dist }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup dev Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+      - name: Terraform Init (dev)
+        run: terraform init -input=false -reconfigure
+        env:
+          TF_WORKSPACE: dev
+      - name: Terraform Validate Dev
+        run: terraform validate
+      - name: Terraform Plan Dev
+        env:
+          TF_WORKSPACE: dev
+        run: terraform plan
+      - name: Terraform Apply Dev
+        run: terraform apply -auto-approve
+      - name: Export Terraform Outputs
+        id: export
+        run: |
+          echo "bucket=$(terraform output -raw bucket_name)" >> "$GITHUB_OUTPUT"
+          echo "dist=$(terraform output -raw distribution_id)" >> "$GITHUB_OUTPUT"
+
+  deploy_web_dev:
+    name: Upload Web Build + Invalidate CF (Dev)
+    needs: dev_deployment_on_merge
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      AWS_REGION: us-east-1
+      BUCKET_NAME: ${{ needs.dev_deployment_on_merge.outputs.bucket }}
+      DIST_ID: ${{ needs.dev_deployment_on_merge.outputs.dist }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps & build
+        run: |
+          npm ci
+          npx expo export:web --output-dir web-build
+      - name: Sync to S3
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        with:
+          args: --acl public-read --delete
+        env:
+          AWS_S3_BUCKET: ${{ env.BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          SOURCE_DIR: web-build
+      - name: Invalidate CF
+        run: |
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" \
+            --paths "/*"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  staging_deployment_on_merge:
+    name: DeploysStaging on (Merge to Main)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: staging
+    needs: []
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    defaults:
+      run:
+        working-directory: ./.aws/workspaces/services/staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup staging Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+      - name: Terraform Init (staging)
+        run: terraform init -input=false -reconfigure
+        env:
+          TF_WORKSPACE: staging
+      - name: Terraform Validate Staging
+        run: terraform validate
+      - name: Terraform Plan Staging
+        env:
+          TF_WORKSPACE: staging
+        run: terraform plan
+      - name: Terraform Apply Staging
+        run: terraform apply -auto-approve
