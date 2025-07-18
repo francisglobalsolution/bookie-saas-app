@@ -442,7 +442,7 @@ jobs:
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
       - name: Run tflint
-        run: tflint .aws/
+        run: tflint --chdir=.aws/
 
   terraform_plan_pr_only:
     name: Terraform Plan (PR Only)
