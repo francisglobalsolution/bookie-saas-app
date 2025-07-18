@@ -9,7 +9,7 @@ export interface User {
 }
 
 // Sign in API call for mock API
-export async function signIn({ email }: { email: string }): Promise<User> {
+export async function signIn({ email, password }: { email: string; password?: string }): Promise<User> {
   const response = await fetch(
     "https://6850d0408612b47a2c079e71.mockapi.io/api/v1/users?email=" +
       encodeURIComponent(email),

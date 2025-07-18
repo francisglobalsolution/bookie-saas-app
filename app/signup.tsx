@@ -348,7 +348,7 @@ const viewStyles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     backgroundColor: "#fff",
-    height: "100vh",
+    height: "100%", // changed from '100vh' to '100%'
     marginTop: 0,
     paddingTop: 0,
   },
@@ -357,7 +357,7 @@ const viewStyles = StyleSheet.create({
     backgroundColor: "#9466e6",
     alignItems: "center",
     justifyContent: "flex-start",
-    minHeight: "100vh",
+    minHeight: "100%", // changed from '100vh' to '100%'
     height: "100%",
     padding: 0,
   },
