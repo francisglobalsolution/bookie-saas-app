@@ -1,0 +1,77 @@
+name: Manual QA/Prod Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy (qa/prod)"
+        required: true
+        type: choice
+        options:
+          - qa
+          - prod
+
+jobs:
+  approve_and_delpoy_qa:
+    name: Approve and Deploy QA
+    if: github.event.inputs.environment == 'qa'
+    runs-on: ubuntu-latest
+    environment: qa
+    needs: []
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    defaults:
+      run:
+        working-directory: ./.aws/workspaces/services/qa
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup QA Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+      - name: Terraform Init (qa)
+        run: terraform init -input=false -reconfigure
+        env:
+          TF_WORKSPACE: qa
+      - name: Terraform Validate QA
+        run: terraform validate
+      - name: Terraform Plan QA
+        run: terraform plan
+      - name: Terraform Apply QA
+        run: terraform apply -auto-approve
+
+  approve_and_deploy_prod:
+    name: Approve and Deploy Prod
+    if: github.event.inputs.environment == 'prod'
+    runs-on: ubuntu-latest
+    environment: prod
+    needs: []
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    defaults:
+      run:
+        working-directory: ./.aws/workspaces/services/prod
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Prod Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+      - name: Terraform Init (prod)
+        run: terraform init -input=false -reconfigure
+        env:
+          TF_WORKSPACE: prod
+      - name: Terraform Validate Prod
+        run: terraform validate
+      - name: Terraform Plan Prod
+        run: terraform plan
+      - name: Terraform Apply Prod
+        run: terraform apply -auto-approve
