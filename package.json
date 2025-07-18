@@ -9,7 +9,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "eslint .",
-    "test": "jest"
+    "test": "jest",
+    "lint:all": "npm run lint && npx prettier --check .",
+    "lint:fix": "npm run lint -- --fix && npx prettier --write ."
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
