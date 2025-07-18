@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// The password argument is required for UI compatibility, but is unused due to mock API limitations.
+
 export interface User {
   id: string;
   name: string;
