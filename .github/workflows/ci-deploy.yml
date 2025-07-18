@@ -92,9 +92,13 @@ jobs:
       TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: us-east-1
     defaults:
       run:
         working-directory: ./.aws/workspaces/services/staging
+    outputs:
+      bucket: ${{ steps.export.outputs.bucket }}
+      dist: ${{ steps.export.outputs.dist }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup staging Terraform
@@ -113,3 +117,28 @@ jobs:
         run: terraform plan
       - name: Terraform Apply Staging
         run: terraform apply -auto-approve
+      - name: Export Terraform Outputs
+        id: export
+        run: |
+          echo "bucket=$(terraform output -raw bucket_name)" >> "$GITHUB_OUTPUT"
+          echo "dist=$(terraform output -raw distribution_id)" >> "$GITHUB_OUTPUT"
+      - name: Install deps & build
+        run: |
+          npm ci
+          npx expo export --platform web -o web-build
+      - name: Sync to S3
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        with:
+          args: --acl public-read --delete
+        env:
+          AWS_S3_BUCKET: ${{ steps.export.outputs.bucket }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          SOURCE_DIR: web-build
+      - name: Invalidate CF
+        run: |
+          aws cloudfront create-invalidation --distribution-id "${{ steps.export.outputs.dist }}" --paths "/*"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
