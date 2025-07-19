@@ -2,11 +2,11 @@
 
 ## Summary of Changes
 
-I've successfully configured your Terraform setup to use remote backends with Terraform Cloud. Here's what was changed:
+I've successfully configured your Terraform setup to use remote backends with Terraform Cloud and resolved the module path issues. Here's what was changed:
 
 ### 1. Updated Terraform Configuration Files
 
-Updated each environment's `main.tf` file to include the remote backend configuration:
+Updated each environment's `main.tf` file to include the remote backend configuration and inlined the module code:
 
 - **Dev Environment** (`/.aws/workspaces/services/dev/main.tf`): Uses workspace `bookie-dev`
 - **Staging Environment** (`/.aws/workspaces/services/staging/main.tf`): Uses workspace `bookie-staging`  
@@ -36,7 +36,17 @@ terraform {
 }
 ```
 
-### 2. Updated GitHub Actions Workflows
+### 2. Resolved Module Path Issues
+
+**Problem**: Terraform Cloud remote execution couldn't access the local module files at `../../../modules/service`.
+
+**Solution**: Inlined the module code directly into each environment's `main.tf` file. This includes:
+- S3 bucket configuration for web hosting
+- CloudFront distribution with Origin Access Control (OAC)
+- S3 bucket policy for CloudFront access
+- Proper resource outputs
+
+### 3. Updated GitHub Actions Workflows
 
 Removed `TF_WORKSPACE` environment variables from all workflow files since we're now using specific named workspaces:
 
@@ -44,7 +54,11 @@ Removed `TF_WORKSPACE` environment variables from all workflow files since we're
 - `.github/workflows/ci-pr.yml`
 - `.github/workflows/ci-manual.yml`
 
-### 3. Removed Redundant Files
+### 4. Updated Output References
+
+Changed all output references from `module.web.bucket_name` to `aws_s3_bucket.service_bucket.bucket` and similarly for distribution_id.
+
+### 5. Removed Redundant Files
 
 - Deleted `/.aws/workspaces/services/backend.tf` as the backend configuration is now in each environment's `main.tf`
 
