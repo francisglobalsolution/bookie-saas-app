@@ -48,7 +48,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services/dev
+        working-directory: ./terraform/dev
     steps:
       - uses: actions/checkout@v4
       - name: Setup Dev Terraform
@@ -76,7 +76,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services/staging
+        working-directory: ./terraform/staging
     steps:
       - uses: actions/checkout@v4
       - name: Setup Staging Terraform
@@ -104,7 +104,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services/qa
+        working-directory: ./terraform/qa
     steps:
       - uses: actions/checkout@v4
       - name: Setup QA Terraform
@@ -132,7 +132,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services/prod
+        working-directory: ./terraform/prod
     steps:
       - uses: actions/checkout@v4
       - name: Setup Prod Terraform

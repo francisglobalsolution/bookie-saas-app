@@ -19,7 +19,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services/dev
+        working-directory: ./terraform/dev
     outputs:
       bucket: ${{ steps.export.outputs.bucket }}
       dist: ${{ steps.export.outputs.dist }}
@@ -91,7 +91,7 @@ jobs:
       AWS_REGION: us-east-1
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services/staging
+        working-directory: ./terraform/staging
     outputs:
       bucket: ${{ steps.export.outputs.bucket }}
       dist: ${{ steps.export.outputs.dist }}

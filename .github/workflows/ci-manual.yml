@@ -27,7 +27,7 @@ jobs:
       AWS_REGION: us-east-1
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services/qa
+        working-directory: ./terraform/qa
     outputs:
       bucket: ${{ steps.export.outputs.bucket }}
       dist: ${{ steps.export.outputs.dist }}
@@ -86,7 +86,7 @@ jobs:
       AWS_REGION: us-east-1
     defaults:
       run:
-        working-directory: ./.aws/workspaces/services/prod
+        working-directory: ./terraform/prod
     outputs:
       bucket: ${{ steps.export.outputs.bucket }}
       dist: ${{ steps.export.outputs.dist }}
