@@ -18,3 +18,21 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "import_existing_resources" {
+  description = "Whether to import existing resources instead of creating new ones"
+  type        = bool
+  default     = false
+}
+
+variable "prevent_destroy" {
+  description = "Prevent accidental destruction of resources"
+  type        = bool
+  default     = true
+}
+
+variable "create_cloudfront" {
+  description = "Whether to create CloudFront distribution"
+  type        = bool
+  default     = true
+}
