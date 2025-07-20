@@ -38,7 +38,7 @@ jobs:
         with:
           terraform_version: 1.7.5
       - name: Terraform Init (qa)
-        run: terraform init -input=false -reconfigure
+        run: terraform init -input=false
       - name: Terraform Validate QA
         run: terraform validate
       - name: Terraform Plan QA
@@ -97,7 +97,7 @@ jobs:
         with:
           terraform_version: 1.7.5
       - name: Terraform Init (prod)
-        run: terraform init -input=false -reconfigure
+        run: terraform init -input=false
       - name: Terraform Validate Prod
         run: terraform validate
       - name: Terraform Plan Prod

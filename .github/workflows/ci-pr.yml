@@ -56,7 +56,7 @@ jobs:
         with:
           terraform_version: 1.7.5
       - name: Terraform Init (dev)
-        run: terraform init -input=false -reconfigure
+        run: terraform init -input=false
       - name: Terraform Validate Dev
         run: terraform validate
       - name: Terraform Plan Dev
@@ -84,7 +84,7 @@ jobs:
         with:
           terraform_version: 1.7.5
       - name: Terraform Init (staging)
-        run: terraform init -input=false -reconfigure
+        run: terraform init -input=false
       - name: Terraform Validate staging
         run: terraform validate
       - name: Terraform Plan staging
@@ -112,7 +112,7 @@ jobs:
         with:
           terraform_version: 1.7.5
       - name: Terraform Init (qa)
-        run: terraform init -input=false -reconfigure
+        run: terraform init -input=false
       - name: Terraform Validate qa
         run: terraform validate
       - name: Terraform Plan qa
@@ -140,7 +140,7 @@ jobs:
         with:
           terraform_version: 1.7.5
       - name: Terraform Init (prod)
-        run: terraform init -input=false -reconfigure
+        run: terraform init -input=false
       - name: Terraform Validate prod
         run: terraform validate
       - name: Terraform Plan prod
