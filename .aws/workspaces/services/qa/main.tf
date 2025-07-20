@@ -7,12 +7,19 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  cloud {
+    organization = "Francis_Global_Solution"
+
+    workspaces {
+      name = "bookie-qa"
+    }
+  }
 }
 
 provider "aws" {
   region = var.region
 }
-
 
 module "web" {
   source             = "../../../modules/service"

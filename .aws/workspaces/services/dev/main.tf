@@ -7,6 +7,14 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  cloud {
+    organization = "Francis_Global_Solution"
+
+    workspaces {
+      name = "bookie-dev"
+    }
+  }
 }
 
 provider "aws" {

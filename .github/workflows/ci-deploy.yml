@@ -30,14 +30,10 @@ jobs:
         with:
           terraform_version: 1.7.5
       - name: Terraform Init (dev)
-        run: terraform init -input=false -reconfigure
-        env:
-          TF_WORKSPACE: dev
+        run: terraform init -input=false
       - name: Terraform Validate Dev
         run: terraform validate
       - name: Terraform Plan Dev
-        env:
-          TF_WORKSPACE: dev
         run: terraform plan
       - name: Terraform Apply Dev
         run: terraform apply -auto-approve
@@ -106,14 +102,10 @@ jobs:
         with:
           terraform_version: 1.7.5
       - name: Terraform Init (staging)
-        run: terraform init -input=false -reconfigure
-        env:
-          TF_WORKSPACE: staging
+        run: terraform init -input=false
       - name: Terraform Validate Staging
         run: terraform validate
       - name: Terraform Plan Staging
-        env:
-          TF_WORKSPACE: staging
         run: terraform plan
       - name: Terraform Apply Staging
         run: terraform apply -auto-approve
