@@ -57,13 +57,9 @@ jobs:
           terraform_version: 1.7.5
       - name: Terraform Init (dev)
         run: terraform init -input=false -reconfigure
-        env:
-          TF_WORKSPACE: dev
       - name: Terraform Validate Dev
         run: terraform validate
       - name: Terraform Plan Dev
-        env:
-          TF_WORKSPACE: dev
         run: terraform plan
 
   terraform_pr_plan_staging:
@@ -89,13 +85,9 @@ jobs:
           terraform_version: 1.7.5
       - name: Terraform Init (staging)
         run: terraform init -input=false -reconfigure
-        env:
-          TF_WORKSPACE: staging
       - name: Terraform Validate staging
         run: terraform validate
       - name: Terraform Plan staging
-        env:
-          TF_WORKSPACE: staging
         run: terraform plan
 
   terraform_pr_plan_qa:
@@ -121,13 +113,9 @@ jobs:
           terraform_version: 1.7.5
       - name: Terraform Init (qa)
         run: terraform init -input=false -reconfigure
-        env:
-          TF_WORKSPACE: qa
       - name: Terraform Validate qa
         run: terraform validate
       - name: Terraform Plan qa
-        env:
-          TF_WORKSPACE: qa
         run: terraform plan
 
   terraform_pr_plan_prod:
@@ -153,13 +141,9 @@ jobs:
           terraform_version: 1.7.5
       - name: Terraform Init (prod)
         run: terraform init -input=false -reconfigure
-        env:
-          TF_WORKSPACE: prod
       - name: Terraform Validate prod
         run: terraform validate
       - name: Terraform Plan prod
-        env:
-          TF_WORKSPACE: prod
         run: terraform plan
 
   prettier_check:
