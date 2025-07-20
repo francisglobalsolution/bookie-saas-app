@@ -7,6 +7,15 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  backend "remote" {
+    hostname     = "app.terraform.io"
+    organization = "Francis_Global_Solution"
+
+    workspaces {
+      name = "bookie-prod"
+    }
+  }
 }
 
 provider "aws" {

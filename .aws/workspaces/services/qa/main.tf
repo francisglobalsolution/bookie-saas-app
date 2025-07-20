@@ -7,12 +7,20 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  backend "remote" {
+    hostname     = "app.terraform.io"
+    organization = "Francis_Global_Solution"
+
+    workspaces {
+      name = "bookie-qa"
+    }
+  }
 }
 
 provider "aws" {
   region = var.region
 }
-
 
 module "web" {
   source             = "../../../modules/service"
