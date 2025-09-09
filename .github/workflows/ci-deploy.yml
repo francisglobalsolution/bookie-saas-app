@@ -35,8 +35,8 @@ jobs:
         run: terraform validate
       - name: Terraform Plan Dev
         run: terraform plan
-      - name: Terraform Apply Dev
-        run: terraform apply -auto-approve
+      # - name: Terraform Apply Dev
+      #   run: terraform apply -auto-approve
       - name: Export Terraform Outputs
         id: export
         shell: bash
@@ -117,8 +117,8 @@ jobs:
         run: terraform validate
       - name: Terraform Plan Staging
         run: terraform plan
-      - name: Terraform Apply Staging
-        run: terraform apply -auto-approve
+      # - name: Terraform Apply Staging
+      #   run: terraform apply -auto-approve
       - name: Export Terraform Outputs
         id: export
         shell: bash
