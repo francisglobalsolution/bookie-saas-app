@@ -53,7 +53,7 @@ jobs:
       - name: Install deps & build
         run: |
           npm ci
-            npx expo export --platform web --output-dir web-build
+          npx expo export --platform web --output-dir web-build
       - name: Sync to S3
         uses: jakejarvis/s3-sync-action@v0.5.1
         with:
@@ -112,7 +112,7 @@ jobs:
       - name: Install deps & build
         run: |
           npm ci
-            npx expo export --platform web --output-dir web-build
+          npx expo export --platform web --output-dir web-build
       - name: Sync to S3
         uses: jakejarvis/s3-sync-action@v0.5.1
         with:
