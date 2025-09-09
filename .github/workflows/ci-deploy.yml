@@ -58,7 +58,12 @@ jobs:
         run: |
           npm ci
           npx expo export --platform web --output-dir web-build
+      - name: Debug outputs
+        run: |
+          echo "Bucket set? ${{ env.BUCKET_NAME != '' }}"
+          echo "Dist set?   ${{ env.DIST_ID != '' }}"
       - name: Sync to S3
+        if: ${{ env.BUCKET_NAME != '' }}
         uses: jakejarvis/s3-sync-action@v0.5.1
         with:
           args: --acl public-read --delete
@@ -69,9 +74,8 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           SOURCE_DIR: web-build
       - name: Invalidate CF
-        run: |
-          aws cloudfront create-invalidation --distribution-id "$DIST_ID" \
-            --paths "/*"
+        if: ${{ env.DIST_ID != '' }}
+        run: aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -114,23 +118,40 @@ jobs:
         run: |
           echo "bucket=$(terraform output -raw bucket_name)" >> "$GITHUB_OUTPUT"
           echo "dist=$(terraform output -raw distribution_id)" >> "$GITHUB_OUTPUT"
+
+  staging_web_deploy:
+    name: Upload Web Build + Invalidate CF (Staging)
+    needs: staging_deployment_on_merge
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      AWS_REGION: us-east-1
+      BUCKET_NAME: ${{ needs.staging_deployment_on_merge.outputs.bucket }}
+      DIST_ID: ${{ needs.staging_deployment_on_merge.outputs.dist }}
+    steps:
+      - uses: actions/checkout@v4
       - name: Install deps & build
         run: |
           npm ci
           npx expo export --platform web --output-dir web-build
+      - name: Debug outputs
+        run: |
+          echo "Bucket set? ${{ env.BUCKET_NAME != '' }}"
+          echo "Dist set?   ${{ env.DIST_ID != '' }}"
       - name: Sync to S3
+        if: ${{ env.BUCKET_NAME != '' }}
         uses: jakejarvis/s3-sync-action@v0.5.1
         with:
           args: --acl public-read --delete
         env:
-          AWS_S3_BUCKET: ${{ steps.export.outputs.bucket }}
+          AWS_S3_BUCKET: ${{ env.BUCKET_NAME }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}
           SOURCE_DIR: web-build
       - name: Invalidate CF
-        run: |
-          aws cloudfront create-invalidation --distribution-id "${{ steps.export.outputs.dist }}" --paths "/*"
+        if: ${{ env.DIST_ID != '' }}
+        run: aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
