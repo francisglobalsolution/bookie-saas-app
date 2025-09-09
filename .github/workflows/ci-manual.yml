@@ -43,8 +43,8 @@ jobs:
         run: terraform validate
       - name: Terraform Plan QA
         run: terraform plan
-    # - name: Terraform Apply QA
-    #   run: terraform apply -auto-approve
+      # - name: Terraform Apply QA
+      #   run: terraform apply -auto-approve
       - name: Export Terraform Outputs
         id: export
         run: |
@@ -102,8 +102,8 @@ jobs:
         run: terraform validate
       - name: Terraform Plan Prod
         run: terraform plan
-    # - name: Terraform Apply Prod
-    #   run: terraform apply -auto-approve
+      # - name: Terraform Apply Prod
+      #   run: terraform apply -auto-approve
       - name: Export Terraform Outputs
         id: export
         run: |
