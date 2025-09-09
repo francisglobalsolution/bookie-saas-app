@@ -37,17 +37,27 @@ jobs:
         run: terraform plan
       # - name: Terraform Apply Dev
       #   run: terraform apply -auto-approve
-      - name: Export Terraform Outputs
+      - name: Export Terraform Outputs (wait for TFC state)
         id: export
+        working-directory: ./.aws/workspaces/services/dev
         shell: bash
         run: |
           set -euo pipefail
-          bucket=$(terraform output -raw bucket_name)
-          dist=$(terraform output -raw distribution_id)
-          [[ -n "$bucket" ]] || { echo "bucket output is empty"; exit 1; }
-          [[ -n "$dist"   ]] || { echo "distribution_id output is empty"; exit 1; }
-          echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
-          echo "dist=$dist"     >> "$GITHUB_OUTPUT"
+          terraform init -input=false >/dev/null
+          for i in {1..30}; do
+            if terraform output -json > /tmp/outs.json 2>/dev/null; then
+              bucket=$(jq -r '.bucket_name.value // empty' /tmp/outs.json)
+              dist=$(jq -r '.distribution_id.value // empty' /tmp/outs.json)
+              if [[ -n "$bucket" && -n "$dist" ]]; then
+                echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
+                echo "dist=$dist"     >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            fi
+            echo "Waiting for Terraform Cloud to finish apply and publish state... ($i/30)"
+            sleep 20
+          done
+          echo "Outputs not available yet (no applied state or wrong workspace)"; exit 1
 
   deploy_web_dev:
     name: Upload Web Build + Invalidate CF (Dev)
@@ -119,17 +129,27 @@ jobs:
         run: terraform plan
       # - name: Terraform Apply Staging
       #   run: terraform apply -auto-approve
-      - name: Export Terraform Outputs
+      - name: Export Terraform Outputs (wait for TFC state)
         id: export
+        working-directory: ./.aws/workspaces/services/staging
         shell: bash
         run: |
           set -euo pipefail
-          bucket=$(terraform output -raw bucket_name)
-          dist=$(terraform output -raw distribution_id)
-          [[ -n "$bucket" ]] || { echo "bucket output is empty"; exit 1; }
-          [[ -n "$dist"   ]] || { echo "distribution_id output is empty"; exit 1; }
-          echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
-          echo "dist=$dist"     >> "$GITHUB_OUTPUT"
+          terraform init -input=false >/dev/null
+          for i in {1..30}; do
+            if terraform output -json > /tmp/outs.json 2>/dev/null; then
+              bucket=$(jq -r '.bucket_name.value // empty' /tmp/outs.json)
+              dist=$(jq -r '.distribution_id.value // empty' /tmp/outs.json)
+              if [[ -n "$bucket" && -n "$dist" ]]; then
+                echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
+                echo "dist=$dist"     >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            fi
+            echo "Waiting for Terraform Cloud to finish apply and publish state... ($i/30)"
+            sleep 20
+          done
+          echo "Outputs not available yet (no applied state or wrong workspace)"; exit 1
 
   staging_web_deploy:
     name: Upload Web Build + Invalidate CF (Staging)
