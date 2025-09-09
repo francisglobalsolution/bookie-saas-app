@@ -1,4 +1,9 @@
-// ESLint v9+ config migration from .eslintrc.json and .eslintignore
+// eslint.config.js
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import react from 'eslint-plugin-react';
+import globals from 'globals';
+
 export default [
   {
     ignores: [
@@ -7,27 +12,32 @@ export default [
       'dist/',
       '.next/',
       '.expo/',
-      '.expo-shared/'
+      '.expo-shared/',
+      'coverage/',
     ],
+  },
+
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+
+  {
+    files: ['**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
-      ecmaVersion: 'latest',
+      ecmaVersion: 2022,
       sourceType: 'module',
-      ecmaFeatures: { jsx: true },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
     },
     plugins: {
-      react: require('eslint-plugin-react'),
-      '@typescript-eslint': require('@typescript-eslint/eslint-plugin'),
+      react,
+    },
+    settings: {
+      react: { version: 'detect' },
     },
     rules: {
       'react/react-in-jsx-scope': 'off',
     },
-    linterOptions: {
-      reportUnusedDisableDirectives: true,
-    },
-    extends: [
-      'eslint:recommended',
-      'plugin:react/recommended',
-      'plugin:@typescript-eslint/recommended'
-    ],
-  }
+  },
 ];
