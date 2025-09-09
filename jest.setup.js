@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import "@testing-library/jest-native/extend-expect";
 
 // Polyfill for setImmediate (needed by react-native-screens in Jest)

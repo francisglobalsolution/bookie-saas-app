@@ -1,5 +1,4 @@
-/* eslint-disable no-undef */
-module.exports = {
+export default {
   preset: "jest-expo",
   testEnvironment: "jsdom",
   transform: {
