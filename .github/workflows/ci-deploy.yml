@@ -35,17 +35,24 @@ jobs:
         run: terraform validate
       - name: Terraform Plan Dev
         run: terraform plan
-      # - name: Terraform Apply Dev
-      #   run: terraform apply -auto-approve
+      - name: Terraform Apply Dev
+        run: terraform apply -auto-approve
       - name: Export Terraform Outputs
         id: export
+        shell: bash
         run: |
-          echo "bucket=$(terraform output -raw bucket_name)" >> "$GITHUB_OUTPUT"
-          echo "dist=$(terraform output -raw distribution_id)" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          bucket=$(terraform output -raw bucket_name)
+          dist=$(terraform output -raw distribution_id)
+          [[ -n "$bucket" ]] || { echo "bucket output is empty"; exit 1; }
+          [[ -n "$dist"   ]] || { echo "distribution_id output is empty"; exit 1; }
+          echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
+          echo "dist=$dist"     >> "$GITHUB_OUTPUT"
 
   deploy_web_dev:
     name: Upload Web Build + Invalidate CF (Dev)
     needs: dev_deployment_on_merge
+    if: ${{ needs.dev_deployment_on_merge.result == 'success' }}
     runs-on: ubuntu-latest
     environment: dev
     env:
@@ -66,11 +73,13 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: Verify outputs & build dir
         run: |
-          set -euo pipefail
-          echo "BUCKET_NAME='${BUCKET_NAME}'"
-          echo "DIST_ID='${DIST_ID}'"
-          test -n "${BUCKET_NAME}" || { echo "❌ Bucket name is empty"; exit 1; }
-          test -d web-build || { echo "❌ web-build dir missing"; ls -la; exit 1; }
+          echo "Bucket set? ${{ env.BUCKET_NAME != '' }}"
+          echo "Dist set?   ${{ env.DIST_ID != '' }}"
+      - name: Verify outputs & build dir
+        run: |
+          [[ -n "$BUCKET_NAME" ]] || { echo "BUCKET_NAME is empty"; exit 1; }
+          [[ -n "$DIST_ID" ]] || { echo "DIST_ID is empty"; exit 1; }
+          [[ -d "web-build" ]] || { echo "web-build directory missing"; exit 1; }
       - name: Sync to S3
         run: aws s3 sync web-build "s3://${BUCKET_NAME}" --acl public-read --delete
       - name: Invalidate CF
@@ -108,17 +117,24 @@ jobs:
         run: terraform validate
       - name: Terraform Plan Staging
         run: terraform plan
-      # - name: Terraform Apply Staging
-      #   run: terraform apply -auto-approve
+      - name: Terraform Apply Staging
+        run: terraform apply -auto-approve
       - name: Export Terraform Outputs
         id: export
+        shell: bash
         run: |
-          echo "bucket=$(terraform output -raw bucket_name)" >> "$GITHUB_OUTPUT"
-          echo "dist=$(terraform output -raw distribution_id)" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          bucket=$(terraform output -raw bucket_name)
+          dist=$(terraform output -raw distribution_id)
+          [[ -n "$bucket" ]] || { echo "bucket output is empty"; exit 1; }
+          [[ -n "$dist"   ]] || { echo "distribution_id output is empty"; exit 1; }
+          echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
+          echo "dist=$dist"     >> "$GITHUB_OUTPUT"
 
   staging_web_deploy:
     name: Upload Web Build + Invalidate CF (Staging)
     needs: staging_deployment_on_merge
+    if: ${{ needs.staging_deployment_on_merge.result == 'success' }}
     runs-on: ubuntu-latest
     environment: staging
     env:
@@ -139,11 +155,13 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: Verify outputs & build dir
         run: |
-          set -euo pipefail
-          echo "BUCKET_NAME='${BUCKET_NAME}'"
-          echo "DIST_ID='${DIST_ID}'"
-          test -n "${BUCKET_NAME}" || { echo "❌ Bucket name is empty"; exit 1; }
-          test -d web-build || { echo "❌ web-build dir missing"; ls -la; exit 1; }
+          echo "Bucket set? ${{ env.BUCKET_NAME != '' }}"
+          echo "Dist set?   ${{ env.DIST_ID != '' }}"
+      - name: Verify outputs & build dir
+        run: |
+          [[ -n "$BUCKET_NAME" ]] || { echo "BUCKET_NAME is empty"; exit 1; }
+          [[ -n "$DIST_ID" ]] || { echo "DIST_ID is empty"; exit 1; }
+          [[ -d "web-build" ]] || { echo "web-build directory missing"; exit 1; }
       - name: Sync to S3
         run: aws s3 sync web-build "s3://${BUCKET_NAME}" --acl public-read --delete
       - name: Invalidate CF
