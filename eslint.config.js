@@ -1,19 +1,21 @@
 // eslint.config.js
-import js from '@eslint/js';
-import tseslint from 'typescript-eslint';
-import react from 'eslint-plugin-react';
-import globals from 'globals';
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import react from "eslint-plugin-react";
+import globals from "globals";
 
 export default [
   {
     ignores: [
-      'node_modules/',
-      'build/',
-      'dist/',
-      '.next/',
-      '.expo/',
-      '.expo-shared/',
-      'coverage/',
+      "node_modules/",
+      "build/",
+      "dist/",
+      ".next/",
+      ".expo/",
+      ".expo-shared/",
+      "coverage/",
+      "babel.config.cjs",
+      "jest.config.js",
     ],
   },
 
@@ -21,10 +23,10 @@ export default [
   ...tseslint.configs.recommended,
 
   {
-    files: ['**/*.{js,jsx,ts,tsx}'],
+    files: ["**/*.{js,jsx,ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'module',
+      sourceType: "module",
       globals: {
         ...globals.browser,
         ...globals.node,
@@ -34,10 +36,10 @@ export default [
       react,
     },
     settings: {
-      react: { version: 'detect' },
+      react: { version: "detect" },
     },
     rules: {
-      'react/react-in-jsx-scope': 'off',
+      "react/react-in-jsx-scope": "off",
     },
   },
 ];
