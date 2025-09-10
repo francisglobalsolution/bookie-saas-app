@@ -5,165 +5,152 @@ on:
     branches: [main]
 
 jobs:
-  dev_deployment_on_merge:
-    name: Deploy Dev on (Merge to Main)
+  # ---------- DEV: read outputs from Terraform Cloud ----------
+  dev_outputs:
+    name: Read TFC Outputs (Dev)
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: dev
-    needs: []
-    env:
-      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    defaults:
-      run:
-        working-directory: ./.aws/workspaces/services/dev
     outputs:
-      bucket: ${{ steps.export.outputs.bucket }}
-      dist: ${{ steps.export.outputs.dist }}
+      bucket: ${{ steps.tfc.outputs.outputs.bucket_name }}
+      dist: ${{ steps.tfc.outputs.outputs.distribution_id }}
     steps:
       - uses: actions/checkout@v4
-      - name: Setup dev Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.7.5
-      - name: Terraform Init (dev)
-        run: terraform init -input=false
-      - name: Terraform Validate Dev
-        run: terraform validate
-      - name: Terraform Plan Dev
-        run: terraform plan
-      # - name: Terraform Apply Dev
-      #   run: terraform apply -auto-approve
-      - name: Export Terraform Outputs
-        id: export
-        shell: bash
-        run: |
-          set -euo pipefail
-          bucket=$(terraform output -raw bucket_name)
-          dist=$(terraform output -raw distribution_id)
-          [[ -n "$bucket" ]] || { echo "bucket output is empty"; exit 1; }
-          [[ -n "$dist"   ]] || { echo "distribution_id output is empty"; exit 1; }
-          echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
-          echo "dist=$dist"     >> "$GITHUB_OUTPUT"
 
+      - name: Get TFC outputs (dev)
+        id: tfc
+        uses: hashicorp/tfc-workflows-github/actions/outputs@v1.0.0
+        with:
+          organization: Francis_Global_Solution
+          workspace: bookie-dev
+          token: ${{ secrets.TF_TOKEN_app_terraform_io }}
+
+      - name: Show fetched outputs (dev)
+        run: |
+          echo "bucket=${{ steps.tfc.outputs.outputs.bucket_name }}"
+          echo "dist=${{ steps.tfc.outputs.outputs.distribution_id }}"
+
+  # ---------- DEV: build and deploy web ----------
   deploy_web_dev:
     name: Upload Web Build + Invalidate CF (Dev)
-    needs: dev_deployment_on_merge
-    if: ${{ needs.dev_deployment_on_merge.result == 'success' }}
+    needs: dev_outputs
+    if: ${{ needs.dev_outputs.outputs.bucket != '' && needs.dev_outputs.outputs.dist != '' }}
     runs-on: ubuntu-latest
     environment: dev
     env:
       AWS_REGION: us-east-1
-      BUCKET_NAME: ${{ needs.dev_deployment_on_merge.outputs.bucket }}
-      DIST_ID: ${{ needs.dev_deployment_on_merge.outputs.dist }}
+      BUCKET_NAME: ${{ needs.dev_outputs.outputs.bucket }}
+      DIST_ID: ${{ needs.dev_outputs.outputs.dist }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Install deps & build
         run: |
-          npm ci
+          npm set fetch-retries 5
+          npm set fetch-retry-maxtimeout 600000
+          npm ci --no-audit --fund=false
           npx expo export --platform web --output-dir web-build
+          echo "Built files:" && ls -la web-build
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-      - name: Verify outputs & build dir
-        run: |
-          echo "Bucket set? ${{ env.BUCKET_NAME != '' }}"
-          echo "Dist set?   ${{ env.DIST_ID != '' }}"
-      - name: Verify outputs & build dir
-        run: |
-          [[ -n "$BUCKET_NAME" ]] || { echo "BUCKET_NAME is empty"; exit 1; }
-          [[ -n "$DIST_ID" ]] || { echo "DIST_ID is empty"; exit 1; }
-          [[ -d "web-build" ]] || { echo "web-build directory missing"; exit 1; }
-      - name: Sync to S3
-        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --acl public-read --delete
-      - name: Invalidate CF
-        if: ${{ env.DIST_ID != '' }}
-        run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
 
-  staging_deployment_on_merge:
-    name: DeploysStaging on (Merge to Main)
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    environment: staging
-    needs: []
-    env:
-      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: us-east-1
-    defaults:
-      run:
-        working-directory: ./.aws/workspaces/services/staging
-    outputs:
-      bucket: ${{ steps.export.outputs.bucket }}
-      dist: ${{ steps.export.outputs.dist }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup staging Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.7.5
-      - name: Terraform Init (staging)
-        run: terraform init -input=false
-      - name: Terraform Validate Staging
-        run: terraform validate
-      - name: Terraform Plan Staging
-        run: terraform plan
-      # - name: Terraform Apply Staging
-      #   run: terraform apply -auto-approve
-      - name: Export Terraform Outputs
-        id: export
+      - name: Verify outputs & build dir
         shell: bash
         run: |
           set -euo pipefail
-          bucket=$(terraform output -raw bucket_name)
-          dist=$(terraform output -raw distribution_id)
-          [[ -n "$bucket" ]] || { echo "bucket output is empty"; exit 1; }
-          [[ -n "$dist"   ]] || { echo "distribution_id output is empty"; exit 1; }
-          echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
-          echo "dist=$dist"     >> "$GITHUB_OUTPUT"
+          echo "BUCKET_NAME='${BUCKET_NAME}'"
+          echo "DIST_ID='${DIST_ID}'"
+          [[ -n "${BUCKET_NAME}" ]] || { echo "❌ BUCKET_NAME is empty"; exit 1; }
+          [[ -n "${DIST_ID}"     ]] || { echo "❌ DIST_ID is empty"; exit 1; }
+          [[ -d web-build        ]] || { echo "❌ web-build directory missing"; ls -la; exit 1; }
 
-  staging_web_deploy:
+      - name: Sync to S3
+        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --acl public-read --delete
+
+      - name: Invalidate CF
+        run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
+
+  # ---------- STAGING: read outputs from Terraform Cloud ----------
+  staging_outputs:
+    name: Read TFC Outputs (Staging)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      bucket: ${{ steps.tfc.outputs.outputs.bucket_name }}
+      dist: ${{ steps.tfc.outputs.outputs.distribution_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get TFC outputs (staging)
+        id: tfc
+        uses: hashicorp/tfc-workflows-github/actions/outputs@v1.0.0
+        with:
+          organization: Francis_Global_Solution
+          workspace: bookie-staging
+          token: ${{ secrets.TF_TOKEN_app_terraform_io }}
+
+      - name: Show fetched outputs (staging)
+        run: |
+          echo "bucket=${{ steps.tfc.outputs.outputs.bucket_name }}"
+          echo "dist=${{ steps.tfc.outputs.outputs.distribution_id }}"
+
+  # ---------- STAGING: build and deploy web ----------
+  deploy_web_staging:
     name: Upload Web Build + Invalidate CF (Staging)
-    needs: staging_deployment_on_merge
-    if: ${{ needs.staging_deployment_on_merge.result == 'success' }}
+    needs: staging_outputs
+    if: ${{ needs.staging_outputs.outputs.bucket != '' && needs.staging_outputs.outputs.dist != '' }}
     runs-on: ubuntu-latest
     environment: staging
     env:
       AWS_REGION: us-east-1
-      BUCKET_NAME: ${{ needs.staging_deployment_on_merge.outputs.bucket }}
-      DIST_ID: ${{ needs.staging_deployment_on_merge.outputs.dist }}
+      BUCKET_NAME: ${{ needs.staging_outputs.outputs.bucket }}
+      DIST_ID: ${{ needs.staging_outputs.outputs.dist }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Install deps & build
         run: |
-          npm ci
+          npm set fetch-retries 5
+          npm set fetch-retry-maxtimeout 600000
+          npm ci --no-audit --fund=false
           npx expo export --platform web --output-dir web-build
+          echo "Built files:" && ls -la web-build
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+
       - name: Verify outputs & build dir
+        shell: bash
         run: |
-          echo "Bucket set? ${{ env.BUCKET_NAME != '' }}"
-          echo "Dist set?   ${{ env.DIST_ID != '' }}"
-      - name: Verify outputs & build dir
-        run: |
-          [[ -n "$BUCKET_NAME" ]] || { echo "BUCKET_NAME is empty"; exit 1; }
-          [[ -n "$DIST_ID" ]] || { echo "DIST_ID is empty"; exit 1; }
-          [[ -d "web-build" ]] || { echo "web-build directory missing"; exit 1; }
+          set -euo pipefail
+          echo "BUCKET_NAME='${BUCKET_NAME}'"
+          echo "DIST_ID='${DIST_ID}'"
+          [[ -n "${BUCKET_NAME}" ]] || { echo "❌ BUCKET_NAME is empty"; exit 1; }
+          [[ -n "${DIST_ID}"     ]] || { echo "❌ DIST_ID is empty"; exit 1; }
+          [[ -d web-build        ]] || { echo "❌ web-build directory missing"; ls -la; exit 1; }
+
       - name: Sync to S3
         run: aws s3 sync web-build "s3://${BUCKET_NAME}" --acl public-read --delete
+
       - name: Invalidate CF
-        if: ${{ env.DIST_ID != '' }}
         run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
