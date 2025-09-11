@@ -5,39 +5,59 @@ on:
     branches: [main]
 
 jobs:
+  # ---------- DEV: fetch outputs from TFC ----------
   dev_deployment_on_merge:
     name: Deploy Dev on (Merge to Main)
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: dev
     outputs:
-      bucket: ${{ steps.export.outputs.bucket }}
-      dist: ${{ steps.export.outputs.dist }}
+      bucket: ${{ steps.fetch.outputs.bucket }}
+      dist: ${{ steps.fetch.outputs.dist }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Ensure jq is available
         run: sudo apt-get update -y && sudo apt-get install -y jq
-      - name: Read TFC Outputs (Dev)
-        id: tfc
-        uses: hashicorp-forge/terraform-cloud-action/outputs@v1
-        with:
-          token: ${{ secrets.TF_TOKEN_app_terraform_io }}
-          organization: Francis_Global_Solution
-          workspace: bookie-dev
-          hostname: app.terraform.io
-      - name: Export parsed outputs
-        id: export
+
+      # Read outputs from Terraform Cloud via API (reliable)
+      - name: Read TFC Outputs (Dev) via API
+        id: fetch
         shell: bash
+        env:
+          TFC_TOKEN: ${{ secrets.TF_TOKEN_app_terraform_io }}
+          TFC_ORG: Francis_Global_Solution
+          TFC_HOST: app.terraform.io
+          TFC_WS: bookie-dev
         run: |
           set -euo pipefail
-          JSON='${{ steps.tfc.outputs.workspace-outputs-json }}'
-          bucket=$(jq -r '.bucket_name.value // empty' <<<"$JSON")
-          dist=$(jq -r '.distribution_id.value // empty' <<<"$JSON")
+          auth="Authorization: Bearer ${TFC_TOKEN}"
+          ctype="Content-Type: application/vnd.api+json"
+
+          # 1) workspace id
+          WS_JSON=$(curl -fsSL -H "$auth" -H "$ctype" \
+            "https://${TFC_HOST}/api/v2/organizations/${TFC_ORG}/workspaces/${TFC_WS}")
+          WS_ID=$(jq -r '.data.id' <<<"$WS_JSON")
+
+          # 2) current state version id
+          SV_JSON=$(curl -fsSL -H "$auth" -H "$ctype" \
+            "https://${TFC_HOST}/api/v2/workspaces/${WS_ID}/current-state-version")
+          SV_ID=$(jq -r '.data.id' <<<"$SV_JSON")
+
+          # 3) outputs
+          OUTS_JSON=$(curl -fsSL -H "$auth" -H "$ctype" \
+            "https://${TFC_HOST}/api/v2/state-versions/${SV_ID}/outputs")
+
+          bucket=$(jq -r '.data[] | select(.attributes.name=="bucket_name")     | .attributes.value' <<<"$OUTS_JSON")
+          dist=$(jq -r   '.data[] | select(.attributes.name=="distribution_id") | .attributes.value' <<<"$OUTS_JSON")
+
           [[ -n "$bucket" ]] || { echo "No bucket_name output present"; exit 1; }
           [[ -n "$dist"   ]] || { echo "No distribution_id output present"; exit 1; }
+
           echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
           echo "dist=$dist"     >> "$GITHUB_OUTPUT"
 
+  # ---------- DEV: web deploy ----------
   deploy_web_dev:
     name: Upload Web Build + Invalidate CF (Dev)
     needs: dev_deployment_on_merge
@@ -50,10 +70,12 @@ jobs:
       DIST_ID: ${{ needs.dev_deployment_on_merge.outputs.dist }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Install deps & build
         run: |
           npm set fetch-retries 5
@@ -61,12 +83,14 @@ jobs:
           npm ci --no-audit --fund=false
           npx expo export --platform web --output-dir web-build
           echo "Built files:" && ls -la web-build
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+
       - name: Verify outputs & build dir
         shell: bash
         run: |
@@ -76,44 +100,62 @@ jobs:
           [[ -n "${BUCKET_NAME}" ]] || { echo "❌ BUCKET_NAME is empty"; exit 1; }
           [[ -n "${DIST_ID}"     ]] || { echo "❌ DIST_ID is empty"; exit 1; }
           [[ -d web-build        ]] || { echo "❌ web-build directory missing"; ls -la; exit 1; }
+
       - name: Sync to S3
         run: aws s3 sync web-build "s3://${BUCKET_NAME}" --acl public-read --delete
+
       - name: Invalidate CF
         run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
 
+  # ---------- STAGING: fetch outputs from TFC ----------
   staging_deployment_on_merge:
     name: Deploy Staging on (Merge to Main)
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: staging
     outputs:
-      bucket: ${{ steps.export.outputs.bucket }}
-      dist: ${{ steps.export.outputs.dist }}
+      bucket: ${{ steps.fetch.outputs.bucket }}
+      dist: ${{ steps.fetch.outputs.dist }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Ensure jq is available
         run: sudo apt-get update -y && sudo apt-get install -y jq
-      - name: Read TFC Outputs (Staging)
-        id: tfc
-        uses: hashicorp-forge/terraform-cloud-action/outputs@v1
-        with:
-          token: ${{ secrets.TF_TOKEN_app_terraform_io }}
-          organization: Francis_Global_Solution
-          workspace: bookie-staging
-          hostname: app.terraform.io
-      - name: Export parsed outputs
-        id: export
+
+      - name: Read TFC Outputs (Staging) via API
+        id: fetch
         shell: bash
+        env:
+          TFC_TOKEN: ${{ secrets.TF_TOKEN_app_terraform_io }}
+          TFC_ORG: Francis_Global_Solution
+          TFC_HOST: app.terraform.io
+          TFC_WS: bookie-staging
         run: |
           set -euo pipefail
-          JSON='${{ steps.tfc.outputs.workspace-outputs-json }}'
-          bucket=$(jq -r '.bucket_name.value // empty' <<<"$JSON")
-          dist=$(jq -r '.distribution_id.value // empty' <<<"$JSON")
+          auth="Authorization: Bearer ${TFC_TOKEN}"
+          ctype="Content-Type: application/vnd.api+json"
+
+          WS_JSON=$(curl -fsSL -H "$auth" -H "$ctype" \
+            "https://${TFC_HOST}/api/v2/organizations/${TFC_ORG}/workspaces/${TFC_WS}")
+          WS_ID=$(jq -r '.data.id' <<<"$WS_JSON")
+
+          SV_JSON=$(curl -fsSL -H "$auth" -H "$ctype" \
+            "https://${TFC_HOST}/api/v2/workspaces/${WS_ID}/current-state-version")
+          SV_ID=$(jq -r '.data.id' <<<"$SV_JSON")
+
+          OUTS_JSON=$(curl -fsSL -H "$auth" -H "$ctype" \
+            "https://${TFC_HOST}/api/v2/state-versions/${SV_ID}/outputs")
+
+          bucket=$(jq -r '.data[] | select(.attributes.name=="bucket_name")     | .attributes.value' <<<"$OUTS_JSON")
+          dist=$(jq -r   '.data[] | select(.attributes.name=="distribution_id") | .attributes.value' <<<"$OUTS_JSON")
+
           [[ -n "$bucket" ]] || { echo "No bucket_name output present"; exit 1; }
           [[ -n "$dist"   ]] || { echo "No distribution_id output present"; exit 1; }
+
           echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
           echo "dist=$dist"     >> "$GITHUB_OUTPUT"
 
+  # ---------- STAGING: web deploy ----------
   staging_web_deploy:
     name: Upload Web Build + Invalidate CF (Staging)
     needs: staging_deployment_on_merge
@@ -126,10 +168,12 @@ jobs:
       DIST_ID: ${{ needs.staging_deployment_on_merge.outputs.dist }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Install deps & build
         run: |
           npm set fetch-retries 5
@@ -137,12 +181,14 @@ jobs:
           npm ci --no-audit --fund=false
           npx expo export --platform web --output-dir web-build
           echo "Built files:" && ls -la web-build
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+
       - name: Verify outputs & build dir
         shell: bash
         run: |
@@ -152,7 +198,9 @@ jobs:
           [[ -n "${BUCKET_NAME}" ]] || { echo "❌ BUCKET_NAME is empty"; exit 1; }
           [[ -n "${DIST_ID}"     ]] || { echo "❌ DIST_ID is empty"; exit 1; }
           [[ -d web-build        ]] || { echo "❌ web-build directory missing"; ls -la; exit 1; }
+
       - name: Sync to S3
         run: aws s3 sync web-build "s3://${BUCKET_NAME}" --acl public-read --delete
+
       - name: Invalidate CF
         run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
