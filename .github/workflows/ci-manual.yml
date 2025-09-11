@@ -34,6 +34,7 @@ jobs:
           token: ${{ secrets.TF_TOKEN_app_terraform_io }}
           organization: Francis_Global_Solution
           workspace: bookie-qa
+          hostname: app.terraform.io
 
       - name: Export parsed outputs
         id: export
@@ -120,6 +121,7 @@ jobs:
           token: ${{ secrets.TF_TOKEN_app_terraform_io }}
           organization: Francis_Global_Solution
           workspace: bookie-prod
+          hostname: app.terraform.io
 
       - name: Export parsed outputs
         id: export

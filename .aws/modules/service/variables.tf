@@ -1,20 +1,6 @@
-variable "env" {
-  description = "The deployment environment (e.g., dev, staging, prod)"
-  type        = string
-}
-
-variable "region" {
-  description = "AWS region to deploy the service"
-  type        = string
-}
-
-variable "bucket_name_prefix" {
-  description = "Prefix for the S3 bucket name"
-  type        = string
-}
-
-variable "tags" {
-  description = "Tags to apply to resources"
-  type        = map(string)
-  default     = {}
-}
+variable "env"                { type = string }
+variable "region"             { type = string }
+variable "bucket_name_prefix" { type = string }
+variable "account_id"         { type = string }
+variable "force_destroy"      { type = bool, default = false }
+variable "tags"               { type = map(string), default = {} }

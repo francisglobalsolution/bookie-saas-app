@@ -1,10 +1,13 @@
-resource "aws_s3_bucket" "service_bucket" {
-  bucket        = "${var.bucket_name_prefix}-${var.env}"
-  force_destroy = true
+locals {
+  # Unique, collision-proof names per account+env
+  bucket_name = "${var.bucket_name_prefix}-${var.env}-${var.account_id}"
+  oac_name    = "oac-${var.env}-${var.account_id}"
+}
 
-  tags = merge(var.tags, {
-    Environment = var.env
-  })
+resource "aws_s3_bucket" "service_bucket" {
+  bucket        = local.bucket_name
+  force_destroy = var.force_destroy
+  tags          = merge(var.tags, { Environment = var.env })
 }
 
 resource "aws_s3_bucket_public_access_block" "block" {
@@ -15,13 +18,12 @@ resource "aws_s3_bucket_public_access_block" "block" {
   restrict_public_buckets = true
 }
 
-# Origin Access Control (CloudFront >= 2022-09)
 resource "aws_cloudfront_origin_access_control" "oac" {
-  name                              = "${var.env}-oac"
+  name                              = local.oac_name
   description                       = "Access control for ${var.env} site"
+  origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
-  origin_access_control_origin_type = "s3"
 }
 
 resource "aws_cloudfront_distribution" "site" {
@@ -29,9 +31,8 @@ resource "aws_cloudfront_distribution" "site" {
   default_root_object = "index.html"
 
   origin {
-    domain_name = aws_s3_bucket.service_bucket.bucket_regional_domain_name
-    origin_id   = "s3-${aws_s3_bucket.service_bucket.id}"
-
+    domain_name              = aws_s3_bucket.service_bucket.bucket_regional_domain_name
+    origin_id                = "s3-${aws_s3_bucket.service_bucket.id}"
     origin_access_control_id = aws_cloudfront_origin_access_control.oac.id
   }
 
@@ -55,23 +56,18 @@ resource "aws_cloudfront_distribution" "site" {
     cloudfront_default_certificate = true
   }
 
-  tags = merge(var.tags, {
-    Environment = var.env
-  })
+  tags = merge(var.tags, { Environment = var.env })
 }
 
-# S3 bucket policy to allow CloudFront OAC
 data "aws_iam_policy_document" "bucket_policy" {
   statement {
     sid    = "AllowCloudFrontServicePrincipal"
     effect = "Allow"
-    principals {
-      type        = "Service"
-      identifiers = ["cloudfront.amazonaws.com"]
-    }
+    principals { type = "Service", identifiers = ["cloudfront.amazonaws.com"] }
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.service_bucket.arn}/*"]
 
+    # Works with OAC (sigv4)
     condition {
       test     = "StringEquals"
       variable = "AWS:SourceArn"
