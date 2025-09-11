@@ -1,5 +1,4 @@
 locals {
-  # Unique, collision-proof names per account+env
   bucket_name = "${var.bucket_name_prefix}-${var.env}-${var.account_id}"
   oac_name    = "oac-${var.env}-${var.account_id}"
 }
@@ -44,12 +43,16 @@ resource "aws_cloudfront_distribution" "site" {
 
     forwarded_values {
       query_string = false
-      cookies { forward = "none" }
+      cookies {
+        forward = "none"
+      }
     }
   }
 
   restrictions {
-    geo_restriction { restriction_type = "none" }
+    geo_restriction {
+      restriction_type = "none"
+    }
   }
 
   viewer_certificate {
@@ -63,11 +66,16 @@ data "aws_iam_policy_document" "bucket_policy" {
   statement {
     sid    = "AllowCloudFrontServicePrincipal"
     effect = "Allow"
-    principals { type = "Service", identifiers = ["cloudfront.amazonaws.com"] }
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.service_bucket.arn}/*"]
 
-    # Works with OAC (sigv4)
+    # Restrict to this distribution when using OAC (sigv4)
     condition {
       test     = "StringEquals"
       variable = "AWS:SourceArn"
