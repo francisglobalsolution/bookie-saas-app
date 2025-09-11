@@ -5,61 +5,64 @@ on:
     branches: [main]
 
 jobs:
-  # ---------- DEV: read outputs from Terraform Cloud ----------
-  dev_outputs:
-    name: Read TFC Outputs (Dev)
+  # ---------- DEV: fetch outputs from TFC ----------
+  dev_deployment_on_merge:
+    name: Deploy Dev on (Merge to Main)
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: dev
     outputs:
-      bucket: ${{ steps.tfc.outputs.outputs.bucket_name }}
-      dist: ${{ steps.tfc.outputs.outputs.distribution_id }}
+      bucket: ${{ steps.export.outputs.bucket }}
+      dist: ${{ steps.export.outputs.dist }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get TFC outputs (dev)
+      - name: Ensure jq is available
+        run: sudo apt-get update -y && sudo apt-get install -y jq
+
+      # Read outputs from Terraform Cloud workspace (VCS-driven apply)
+      - name: Read TFC Outputs (Dev)
         id: tfc
-        uses: hashicorp/tfc-workflows-github/actions/outputs@v1.0.0
+        uses: hashicorp-forge/terraform-cloud-action/outputs@v1
         with:
+          token: ${{ secrets.TF_TOKEN_app_terraform_io }}
           organization: Francis_Global_Solution
           workspace: bookie-dev
-          token: ${{ secrets.TF_TOKEN_app_terraform_io }}
 
-      - name: Show fetched outputs (dev)
+      # Parse JSON and publish job outputs for downstream jobs
+      - name: Export parsed outputs
+        id: export
+        shell: bash
         run: |
-          echo "bucket=${{ steps.tfc.outputs.outputs.bucket_name }}"
-          echo "dist=${{ steps.tfc.outputs.outputs.distribution_id }}"
+          set -euo pipefail
+          JSON='${{ steps.tfc.outputs.workspace-outputs-json }}'
+          bucket=$(jq -r '.bucket_name.value // empty' <<<"$JSON")
+          dist=$(jq -r '.distribution_id.value // empty' <<<"$JSON")
+          [[ -n "$bucket" ]] || { echo "No bucket_name output present"; exit 1; }
+          [[ -n "$dist"   ]] || { echo "No distribution_id output present"; exit 1; }
+          echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
+          echo "dist=$dist"     >> "$GITHUB_OUTPUT"
 
-  # ---------- DEV: build and deploy web ----------
+  # ---------- DEV: web deploy ----------
   deploy_web_dev:
     name: Upload Web Build + Invalidate CF (Dev)
-    needs: dev_outputs
-    if: ${{ needs.dev_outputs.outputs.bucket != '' && needs.dev_outputs.outputs.dist != '' }}
+    needs: dev_deployment_on_merge
+    if: ${{ needs.dev_deployment_on_merge.result == 'success' && needs.dev_deployment_on_merge.outputs.bucket != '' && needs.dev_deployment_on_merge.outputs.dist != '' }}
     runs-on: ubuntu-latest
     environment: dev
     env:
       AWS_REGION: us-east-1
-      BUCKET_NAME: ${{ needs.dev_outputs.outputs.bucket }}
-      DIST_ID: ${{ needs.dev_outputs.outputs.dist }}
+      BUCKET_NAME: ${{ needs.dev_deployment_on_merge.outputs.bucket }}
+      DIST_ID: ${{ needs.dev_deployment_on_merge.outputs.dist }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
 
       - name: Install deps & build
         run: |
           npm set fetch-retries 5
           npm set fetch-retry-maxtimeout 600000
           npm ci --no-audit --fund=false
-          npm set fetch-retries 5
-          npm set fetch-retry-maxtimeout 600000
-          npm ci --no-audit --fund=false
           npx expo export --platform web --output-dir web-build
-          echo "Built files:" && ls -la web-build
-
           echo "Built files:" && ls -la web-build
 
       - name: Configure AWS credentials
@@ -85,61 +88,62 @@ jobs:
       - name: Invalidate CF
         run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
 
-  # ---------- STAGING: read outputs from Terraform Cloud ----------
-  staging_outputs:
-    name: Read TFC Outputs (Staging)
+  # ---------- STAGING: fetch outputs from TFC ----------
+  staging_deployment_on_merge:
+    name: DeploysStaging on (Merge to Main)
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: staging
     outputs:
-      bucket: ${{ steps.tfc.outputs.outputs.bucket_name }}
-      dist: ${{ steps.tfc.outputs.outputs.distribution_id }}
+      bucket: ${{ steps.export.outputs.bucket }}
+      dist: ${{ steps.export.outputs.dist }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get TFC outputs (staging)
+      - name: Ensure jq is available
+        run: sudo apt-get update -y && sudo apt-get install -y jq
+
+      - name: Read TFC Outputs (Staging)
         id: tfc
-        uses: hashicorp/tfc-workflows-github/actions/outputs@v1.0.0
+        uses: hashicorp-forge/terraform-cloud-action/outputs@v1
         with:
+          token: ${{ secrets.TF_TOKEN_app_terraform_io }}
           organization: Francis_Global_Solution
           workspace: bookie-staging
-          token: ${{ secrets.TF_TOKEN_app_terraform_io }}
 
-      - name: Show fetched outputs (staging)
+      - name: Export parsed outputs
+        id: export
+        shell: bash
         run: |
-          echo "bucket=${{ steps.tfc.outputs.outputs.bucket_name }}"
-          echo "dist=${{ steps.tfc.outputs.outputs.distribution_id }}"
+          set -euo pipefail
+          JSON='${{ steps.tfc.outputs.workspace-outputs-json }}'
+          bucket=$(jq -r '.bucket_name.value // empty' <<<"$JSON")
+          dist=$(jq -r '.distribution_id.value // empty' <<<"$JSON")
+          [[ -n "$bucket" ]] || { echo "No bucket_name output present"; exit 1; }
+          [[ -n "$dist"   ]] || { echo "No distribution_id output present"; exit 1; }
+          echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
+          echo "dist=$dist"     >> "$GITHUB_OUTPUT"
 
-  # ---------- STAGING: build and deploy web ----------
-  deploy_web_staging:
+  # ---------- STAGING: web deploy ----------
+  staging_web_deploy:
     name: Upload Web Build + Invalidate CF (Staging)
-    needs: staging_outputs
-    if: ${{ needs.staging_outputs.outputs.bucket != '' && needs.staging_outputs.outputs.dist != '' }}
+    needs: staging_deployment_on_merge
+    if: ${{ needs.staging_deployment_on_merge.result == 'success' && needs.staging_deployment_on_merge.outputs.bucket != '' && needs.staging_deployment_on_merge.outputs.dist != '' }}
     runs-on: ubuntu-latest
     environment: staging
     env:
       AWS_REGION: us-east-1
-      BUCKET_NAME: ${{ needs.staging_outputs.outputs.bucket }}
-      DIST_ID: ${{ needs.staging_outputs.outputs.dist }}
+      BUCKET_NAME: ${{ needs.staging_deployment_on_merge.outputs.bucket }}
+      DIST_ID: ${{ needs.staging_deployment_on_merge.outputs.dist }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
 
       - name: Install deps & build
         run: |
           npm set fetch-retries 5
           npm set fetch-retry-maxtimeout 600000
           npm ci --no-audit --fund=false
-          npm set fetch-retries 5
-          npm set fetch-retry-maxtimeout 600000
-          npm ci --no-audit --fund=false
           npx expo export --platform web --output-dir web-build
-          echo "Built files:" && ls -la web-build
-
           echo "Built files:" && ls -la web-build
 
       - name: Configure AWS credentials

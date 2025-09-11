@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment to deploy (qa/prod)"
+        description: "Environment to deploy"
         required: true
         type: choice
         options:
@@ -12,120 +12,174 @@ on:
           - prod
 
 jobs:
-  approve_and_delpoy_qa:
-    name: Approve and Deploy QA
-    if: github.event.inputs.environment == 'qa'
+  # ---------- QA: fetch outputs from Terraform Cloud ----------
+  qa_outputs:
+    name: Fetch TFC Outputs (QA)
+    if: ${{ github.event.inputs.environment == 'qa' }}
     runs-on: ubuntu-latest
     environment: qa
-    needs: []
-    env:
-      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: us-east-1
-    defaults:
-      run:
-        working-directory: ./.aws/workspaces/services/qa
     outputs:
       bucket: ${{ steps.export.outputs.bucket }}
       dist: ${{ steps.export.outputs.dist }}
     steps:
       - uses: actions/checkout@v4
-      - name: Setup QA Terraform
-        uses: hashicorp/setup-terraform@v3
+
+      - name: Ensure jq is available
+        run: sudo apt-get update -y && sudo apt-get install -y jq
+
+      - name: Read TFC Outputs (QA)
+        id: tfc
+        uses: hashicorp-forge/terraform-cloud-action/outputs@v1
         with:
-          terraform_version: 1.7.5
-      - name: Terraform Init (qa)
-        run: terraform init -input=false
-      - name: Terraform Validate QA
-        run: terraform validate
-      - name: Terraform Plan QA
-        run: terraform plan
-      # - name: Terraform Apply QA
-      #   run: terraform apply -auto-approve
-      - name: Export Terraform Outputs
+          token: ${{ secrets.TF_TOKEN_app_terraform_io }}
+          organization: Francis_Global_Solution
+          workspace: bookie-qa
+
+      - name: Export parsed outputs
         id: export
+        shell: bash
         run: |
-          echo "bucket=$(terraform output -raw bucket_name)" >> "$GITHUB_OUTPUT"
-          echo "dist=$(terraform output -raw distribution_id)" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          JSON='${{ steps.tfc.outputs.workspace-outputs-json }}'
+          bucket=$(jq -r '.bucket_name.value // empty' <<<"$JSON")
+          dist=$(jq -r '.distribution_id.value // empty' <<<"$JSON")
+          [[ -n "$bucket" ]] || { echo "No bucket_name output present"; exit 1; }
+          [[ -n "$dist"   ]] || { echo "No distribution_id output present"; exit 1; }
+          echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
+          echo "dist=$dist"     >> "$GITHUB_OUTPUT"
+
+  # ---------- QA: build & deploy ----------
+  qa_deploy:
+    name: Upload Web Build + Invalidate CF (QA)
+    needs: qa_outputs
+    if: ${{ github.event.inputs.environment == 'qa' && needs.qa_outputs.outputs.bucket != '' && needs.qa_outputs.outputs.dist != '' }}
+    runs-on: ubuntu-latest
+    environment: qa
+    env:
+      AWS_REGION: us-east-1
+      BUCKET_NAME: ${{ needs.qa_outputs.outputs.bucket }}
+      DIST_ID: ${{ needs.qa_outputs.outputs.dist }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Install deps & build
         run: |
-          npm ci
+          npm set fetch-retries 5
+          npm set fetch-retry-maxtimeout 600000
+          npm ci --no-audit --fund=false
           npx expo export --platform web --output-dir web-build
-      - name: Sync to S3
-        uses: jakejarvis/s3-sync-action@v0.5.1
-        with:
-          args: --acl public-read --delete
-        env:
-          AWS_S3_BUCKET: ${{ steps.export.outputs.bucket }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          SOURCE_DIR: web-build
-      - name: Invalidate CF
-        run: |
-          aws cloudfront create-invalidation --distribution-id "${{ steps.export.outputs.dist }}" --paths "/*"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          echo "Built files:" && ls -la web-build
 
-  approve_and_deploy_prod:
-    name: Approve and Deploy Prod
-    if: github.event.inputs.environment == 'prod'
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify outputs & build dir
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "BUCKET_NAME='${BUCKET_NAME}'"
+          echo "DIST_ID='${DIST_ID}'"
+          [[ -n "${BUCKET_NAME}" ]] || { echo "❌ BUCKET_NAME is empty"; exit 1; }
+          [[ -n "${DIST_ID}"     ]] || { echo "❌ DIST_ID is empty"; exit 1; }
+          [[ -d web-build        ]] || { echo "❌ web-build directory missing"; ls -la; exit 1; }
+
+      - name: Sync to S3
+        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --acl public-read --delete
+
+      - name: Invalidate CF
+        run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
+
+  # ---------- PROD: fetch outputs from Terraform Cloud ----------
+  prod_outputs:
+    name: Fetch TFC Outputs (Prod)
+    if: ${{ github.event.inputs.environment == 'prod' }}
     runs-on: ubuntu-latest
     environment: prod
-    needs: []
-    env:
-      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-      TERRAFORM_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-      TF_CLOUD_ORGANIZATION: "Francis_Global_Solution"
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: us-east-1
-    defaults:
-      run:
-        working-directory: ./.aws/workspaces/services/prod
     outputs:
       bucket: ${{ steps.export.outputs.bucket }}
       dist: ${{ steps.export.outputs.dist }}
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Prod Terraform
-        uses: hashicorp/setup-terraform@v3
+
+      - name: Ensure jq is available
+        run: sudo apt-get update -y && sudo apt-get install -y jq
+
+      - name: Read TFC Outputs (Prod)
+        id: tfc
+        uses: hashicorp-forge/terraform-cloud-action/outputs@v1
         with:
-          terraform_version: 1.7.5
-      - name: Terraform Init (prod)
-        run: terraform init -input=false
-      - name: Terraform Validate Prod
-        run: terraform validate
-      - name: Terraform Plan Prod
-        run: terraform plan
-      # - name: Terraform Apply Prod
-      #   run: terraform apply -auto-approve
-      - name: Export Terraform Outputs
+          token: ${{ secrets.TF_TOKEN_app_terraform_io }}
+          organization: Francis_Global_Solution
+          workspace: bookie-prod
+
+      - name: Export parsed outputs
         id: export
+        shell: bash
         run: |
-          echo "bucket=$(terraform output -raw bucket_name)" >> "$GITHUB_OUTPUT"
-          echo "dist=$(terraform output -raw distribution_id)" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          JSON='${{ steps.tfc.outputs.workspace-outputs-json }}'
+          bucket=$(jq -r '.bucket_name.value // empty' <<<"$JSON")
+          dist=$(jq -r '.distribution_id.value // empty' <<<"$JSON")
+          [[ -n "$bucket" ]] || { echo "No bucket_name output present"; exit 1; }
+          [[ -n "$dist"   ]] || { echo "No distribution_id output present"; exit 1; }
+          echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
+          echo "dist=$dist"     >> "$GITHUB_OUTPUT"
+
+  # ---------- PROD: build & deploy ----------
+  prod_deploy:
+    name: Upload Web Build + Invalidate CF (Prod)
+    needs: prod_outputs
+    if: ${{ github.event.inputs.environment == 'prod' && needs.prod_outputs.outputs.bucket != '' && needs.prod_outputs.outputs.dist != '' }}
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      AWS_REGION: us-east-1
+      BUCKET_NAME: ${{ needs.prod_outputs.outputs.bucket }}
+      DIST_ID: ${{ needs.prod_outputs.outputs.dist }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Install deps & build
         run: |
-          npm ci
+          npm set fetch-retries 5
+          npm set fetch-retry-maxtimeout 600000
+          npm ci --no-audit --fund=false
           npx expo export --platform web --output-dir web-build
-      - name: Sync to S3
-        uses: jakejarvis/s3-sync-action@v0.5.1
+          echo "Built files:" && ls -la web-build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          args: --acl public-read --delete
-        env:
-          AWS_S3_BUCKET: ${{ steps.export.outputs.bucket }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          SOURCE_DIR: web-build
-      - name: Invalidate CF
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify outputs & build dir
+        shell: bash
         run: |
-          aws cloudfront create-invalidation --distribution-id "${{ steps.export.outputs.dist }}" --paths "/*"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          set -euo pipefail
+          echo "BUCKET_NAME='${BUCKET_NAME}'"
+          echo "DIST_ID='${DIST_ID}'"
+          [[ -n "${BUCKET_NAME}" ]] || { echo "❌ BUCKET_NAME is empty"; exit 1; }
+          [[ -n "${DIST_ID}"     ]] || { echo "❌ DIST_ID is empty"; exit 1; }
+          [[ -d web-build        ]] || { echo "❌ web-build directory missing"; ls -la; exit 1; }
+
+      - name: Sync to S3
+        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --acl public-read --delete
+
+      - name: Invalidate CF
+        run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
