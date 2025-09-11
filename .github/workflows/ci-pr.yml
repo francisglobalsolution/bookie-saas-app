@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: Lint
@@ -15,7 +19,7 @@ jobs:
         with:
           node-version: 20
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --fund=false
       - name: Run ESLint
         run: npm run lint
 
@@ -30,13 +34,12 @@ jobs:
         with:
           node-version: 20
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --fund=false
       - name: Run Jest
         run: npm run test
 
   terraform_pr_plan_dev:
     name: Terraform Initialize, Plan and Validate dev
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     environment: dev
     needs: test
@@ -64,7 +67,6 @@ jobs:
 
   terraform_pr_plan_staging:
     name: Terraform Initialize, Plan and Validate staging
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     environment: staging
     needs: terraform_pr_plan_dev
@@ -92,7 +94,6 @@ jobs:
 
   terraform_pr_plan_qa:
     name: Terraform Initialize, Plan and Validate qa
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     environment: qa
     needs: terraform_pr_plan_staging
@@ -120,7 +121,6 @@ jobs:
 
   terraform_pr_plan_prod:
     name: Terraform Initialize, Plan and Validate prod
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     environment: prod
     needs: terraform_pr_plan_qa
@@ -151,8 +151,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --fund=false
       - name: Run Prettier
         run: npx prettier --check .
 
@@ -161,8 +165,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --fund=false
       - name: Run npm audit
         run: npm audit --audit-level=high || true
 
@@ -193,7 +201,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --fund=false
       - name: Run TypeScript type check
         run: npx tsc --noEmit
