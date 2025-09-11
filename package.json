@@ -11,6 +11,8 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "test": "jest",
+    "tf:fmt:check": "terraform fmt -check -recursive .aws/",
+    "tf:fmt:write": "terraform fmt -recursive .aws/",
     "lint:all": "npm run lint && npx prettier --check .",
     "lint:fix": "npm run lint -- --fix && npx prettier --write ."
   },
