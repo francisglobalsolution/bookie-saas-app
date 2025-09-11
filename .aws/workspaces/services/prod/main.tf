@@ -10,7 +10,6 @@ terraform {
 
   cloud {
     organization = "Francis_Global_Solution"
-
     workspaces {
       name = "bookie-prod"
     }
@@ -25,6 +24,8 @@ module "web" {
   source             = "../../../modules/service"
   env                = var.env
   region             = var.region
+  account_id         = var.account_id
   bucket_name_prefix = var.bucket_name_prefix
+  force_destroy      = var.force_destroy
   tags               = var.tags
 }
