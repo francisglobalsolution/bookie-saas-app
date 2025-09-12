@@ -9,6 +9,14 @@ resource "aws_s3_bucket" "service_bucket" {
   tags          = merge(var.tags, { Environment = var.env })
 }
 
+# NEW: enforce bucket owner, disable object ACLs (no console clicks needed)
+resource "aws_s3_bucket_ownership_controls" "this" {
+  bucket = aws_s3_bucket.service_bucket.id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
 resource "aws_s3_bucket_public_access_block" "block" {
   bucket                  = aws_s3_bucket.service_bucket.id
   block_public_acls       = true
@@ -47,6 +55,18 @@ resource "aws_cloudfront_distribution" "site" {
         forward = "none"
       }
     }
+  }
+
+  # NEW: SPA fallbacks so client-side routes work (403/404 -> index.html)
+  custom_error_response {
+    error_code         = 403
+    response_code      = 200
+    response_page_path = "/index.html"
+  }
+  custom_error_response {
+    error_code         = 404
+    response_code      = 200
+    response_page_path = "/index.html"
   }
 
   restrictions {
