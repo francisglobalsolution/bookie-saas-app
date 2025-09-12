@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: qa
     outputs:
-      bucket: ${{ steps.fetch.outputs.bucket }}   # CHANGED: export -> fetch
-      dist: ${{ steps.fetch.outputs.dist }}       # CHANGED: export -> fetch
+      bucket: ${{ steps.fetch.outputs.bucket }} # CHANGED: export -> fetch
+      dist: ${{ steps.fetch.outputs.dist }} # CHANGED: export -> fetch
     steps:
       - uses: actions/checkout@v4
 
@@ -106,7 +106,7 @@ jobs:
           [[ -d web-build        ]] || { echo "❌ web-build directory missing"; ls -la; exit 1; }
 
       - name: Sync to S3
-        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --delete   # CHANGED: removed --acl public-read
+        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --delete # CHANGED: removed --acl public-read
 
       - name: Invalidate CF
         run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
@@ -118,8 +118,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: prod
     outputs:
-      bucket: ${{ steps.fetch.outputs.bucket }}   # CHANGED: export -> fetch
-      dist: ${{ steps.fetch.outputs.dist }}       # CHANGED: export -> fetch
+      bucket: ${{ steps.fetch.outputs.bucket }} # CHANGED: export -> fetch
+      dist: ${{ steps.fetch.outputs.dist }} # CHANGED: export -> fetch
     steps:
       - uses: actions/checkout@v4
 
@@ -205,7 +205,7 @@ jobs:
           [[ -d web-build        ]] || { echo "❌ web-build directory missing"; ls -la; exit 1; }
 
       - name: Sync to S3
-        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --delete   # CHANGED: removed --acl public-read
+        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --delete # CHANGED: removed --acl public-read
 
       - name: Invalidate CF
         run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
