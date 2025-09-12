@@ -102,7 +102,7 @@ jobs:
           [[ -d web-build        ]] || { echo "❌ web-build directory missing"; ls -la; exit 1; }
 
       - name: Sync to S3
-        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --acl public-read --delete
+        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --delete
 
       - name: Invalidate CF
         run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
@@ -200,7 +200,7 @@ jobs:
           [[ -d web-build        ]] || { echo "❌ web-build directory missing"; ls -la; exit 1; }
 
       - name: Sync to S3
-        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --acl public-read --delete
+        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --delete
 
       - name: Invalidate CF
         run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
