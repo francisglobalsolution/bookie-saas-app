@@ -19,33 +19,45 @@ jobs:
     runs-on: ubuntu-latest
     environment: qa
     outputs:
-      bucket: ${{ steps.export.outputs.bucket }}
-      dist: ${{ steps.export.outputs.dist }}
+      bucket: ${{ steps.fetch.outputs.bucket }} # CHANGED: export -> fetch
+      dist: ${{ steps.fetch.outputs.dist }} # CHANGED: export -> fetch
     steps:
       - uses: actions/checkout@v4
 
       - name: Ensure jq is available
         run: sudo apt-get update -y && sudo apt-get install -y jq
 
-      - name: Read TFC Outputs (QA)
-        id: tfc
-        uses: hashicorp-forge/terraform-cloud-action/outputs@v1
-        with:
-          token: ${{ secrets.TF_TOKEN_app_terraform_io }}
-          organization: Francis_Global_Solution
-          workspace: bookie-qa
-          hostname: app.terraform.io
-
-      - name: Export parsed outputs
-        id: export
+      # CHANGED: Read outputs via TFC API (replaces terraform-cloud-action/outputs + export step)
+      - name: Read TFC Outputs (QA) via API
+        id: fetch
         shell: bash
+        env:
+          TFC_TOKEN: ${{ secrets.TF_TOKEN_app_terraform_io }}
+          TFC_ORG: Francis_Global_Solution
+          TFC_HOST: app.terraform.io
+          TFC_WS: bookie-qa
         run: |
           set -euo pipefail
-          JSON='${{ steps.tfc.outputs.workspace-outputs-json }}'
-          bucket=$(jq -r '.bucket_name.value // empty' <<<"$JSON")
-          dist=$(jq -r '.distribution_id.value // empty' <<<"$JSON")
+          auth="Authorization: Bearer ${TFC_TOKEN}"
+          ctype="Content-Type: application/vnd.api+json"
+
+          WS_JSON=$(curl -fsSL -H "$auth" -H "$ctype" \
+            "https://${TFC_HOST}/api/v2/organizations/${TFC_ORG}/workspaces/${TFC_WS}")
+          WS_ID=$(jq -r '.data.id' <<<"$WS_JSON")
+
+          SV_JSON=$(curl -fsSL -H "$auth" -H "$ctype" \
+            "https://${TFC_HOST}/api/v2/workspaces/${WS_ID}/current-state-version")
+          SV_ID=$(jq -r '.data.id' <<<"$SV_JSON")
+
+          OUTS_JSON=$(curl -fsSL -H "$auth" -H "$ctype" \
+            "https://${TFC_HOST}/api/v2/state-versions/${SV_ID}/outputs")
+
+          bucket=$(jq -r '.data[] | select(.attributes.name=="bucket_name")     | .attributes.value' <<<"$OUTS_JSON")
+          dist=$(jq -r   '.data[] | select(.attributes.name=="distribution_id") | .attributes.value' <<<"$OUTS_JSON")
+
           [[ -n "$bucket" ]] || { echo "No bucket_name output present"; exit 1; }
           [[ -n "$dist"   ]] || { echo "No distribution_id output present"; exit 1; }
+
           echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
           echo "dist=$dist"     >> "$GITHUB_OUTPUT"
 
@@ -94,7 +106,7 @@ jobs:
           [[ -d web-build        ]] || { echo "❌ web-build directory missing"; ls -la; exit 1; }
 
       - name: Sync to S3
-        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --acl public-read --delete
+        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --delete # CHANGED: removed --acl public-read
 
       - name: Invalidate CF
         run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
@@ -106,33 +118,45 @@ jobs:
     runs-on: ubuntu-latest
     environment: prod
     outputs:
-      bucket: ${{ steps.export.outputs.bucket }}
-      dist: ${{ steps.export.outputs.dist }}
+      bucket: ${{ steps.fetch.outputs.bucket }} # CHANGED: export -> fetch
+      dist: ${{ steps.fetch.outputs.dist }} # CHANGED: export -> fetch
     steps:
       - uses: actions/checkout@v4
 
       - name: Ensure jq is available
         run: sudo apt-get update -y && sudo apt-get install -y jq
 
-      - name: Read TFC Outputs (Prod)
-        id: tfc
-        uses: hashicorp-forge/terraform-cloud-action/outputs@v1
-        with:
-          token: ${{ secrets.TF_TOKEN_app_terraform_io }}
-          organization: Francis_Global_Solution
-          workspace: bookie-prod
-          hostname: app.terraform.io
-
-      - name: Export parsed outputs
-        id: export
+      # CHANGED: Read outputs via TFC API (replaces terraform-cloud-action/outputs + export step)
+      - name: Read TFC Outputs (Prod) via API
+        id: fetch
         shell: bash
+        env:
+          TFC_TOKEN: ${{ secrets.TF_TOKEN_app_terraform_io }}
+          TFC_ORG: Francis_Global_Solution
+          TFC_HOST: app.terraform.io
+          TFC_WS: bookie-prod
         run: |
           set -euo pipefail
-          JSON='${{ steps.tfc.outputs.workspace-outputs-json }}'
-          bucket=$(jq -r '.bucket_name.value // empty' <<<"$JSON")
-          dist=$(jq -r '.distribution_id.value // empty' <<<"$JSON")
+          auth="Authorization: Bearer ${TFC_TOKEN}"
+          ctype="Content-Type: application/vnd.api+json"
+
+          WS_JSON=$(curl -fsSL -H "$auth" -H "$ctype" \
+            "https://${TFC_HOST}/api/v2/organizations/${TFC_ORG}/workspaces/${TFC_WS}")
+          WS_ID=$(jq -r '.data.id' <<<"$WS_JSON")
+
+          SV_JSON=$(curl -fsSL -H "$auth" -H "$ctype" \
+            "https://${TFC_HOST}/api/v2/workspaces/${WS_ID}/current-state-version")
+          SV_ID=$(jq -r '.data.id' <<<"$SV_JSON")
+
+          OUTS_JSON=$(curl -fsSL -H "$auth" -H "$ctype" \
+            "https://${TFC_HOST}/api/v2/state-versions/${SV_ID}/outputs")
+
+          bucket=$(jq -r '.data[] | select(.attributes.name=="bucket_name")     | .attributes.value' <<<"$OUTS_JSON")
+          dist=$(jq -r   '.data[] | select(.attributes.name=="distribution_id") | .attributes.value' <<<"$OUTS_JSON")
+
           [[ -n "$bucket" ]] || { echo "No bucket_name output present"; exit 1; }
           [[ -n "$dist"   ]] || { echo "No distribution_id output present"; exit 1; }
+
           echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
           echo "dist=$dist"     >> "$GITHUB_OUTPUT"
 
@@ -181,7 +205,7 @@ jobs:
           [[ -d web-build        ]] || { echo "❌ web-build directory missing"; ls -la; exit 1; }
 
       - name: Sync to S3
-        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --acl public-read --delete
+        run: aws s3 sync web-build "s3://${BUCKET_NAME}" --delete # CHANGED: removed --acl public-read
 
       - name: Invalidate CF
         run: aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
