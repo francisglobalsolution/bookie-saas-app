@@ -38,7 +38,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     slug,
     scheme: "bookie",
     runtimeVersion: { policy: "sdkVersion" },
-    updates: { url: "https://u.expo.dev/9bc3ca10-c107-46d8-b3af-4154936acce3" },
+    updates: {
+      url: "https://u.expo.dev/9bc3ca10-c107-46d8-b3af-4154936acce3"
+    },
     ios: {
       supportsTablet: true,
       bundleIdentifier: iosBundleId,
@@ -56,6 +58,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       USE_MOCKS: process.env.USE_MOCKS,
       eas: { projectId: "9bc3ca10-c107-46d8-b3af-4154936acce3" },
     },
-    updatesChannel: channel,
+  // ...existing code...
   };
 };
