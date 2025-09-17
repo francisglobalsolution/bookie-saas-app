@@ -1,0 +1,41 @@
+name: Mobile Deploy (Manual QA/Prod)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy"
+        required: true
+        type: choice
+        options: [qa, prod]
+      submit_to_stores:
+        description: "Also submit build to stores?"
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+
+jobs:
+  build_and_submit:
+    runs-on: ubuntu-latest
+    env:
+      PROFILE: ${{ github.event.inputs.environment }}
+      SUBMIT_TO_STORES: ${{ github.event.inputs.submit_to_stores }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Expo/EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EAS_TOKEN }}
+
+      - name: EAS build (${{ env.PROFILE }})
+        run: eas build --profile "${PROFILE}" --platform all --non-interactive --wait
+
+      - name: Submit Android (${{ env.PROFILE }})
+        if: env.SUBMIT_TO_STORES == 'true'
+        run: eas submit -p android --profile "${PROFILE}" --latest --non-interactive
+
+      - name: Submit iOS (${{ env.PROFILE }})
+        if: env.SUBMIT_TO_STORES == 'true'
+        run: eas submit -p ios --profile "${PROFILE}" --latest --non-interactive
