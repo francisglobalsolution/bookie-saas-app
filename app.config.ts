@@ -25,12 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   const androidPackage = iosBundleId;
 
-  const channel = pick(profile, {
-    dev: "dev",
-    staging: "staging",
-    qa: "qa",
-    prod: "prod",
-  });
+  // ...existing code...
 
   return {
     ...config,
