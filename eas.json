@@ -54,9 +54,9 @@
     }
   },
   "submit": {
-    "dev":     { "android": { "track": "internal" },   "ios": {} },
-    "staging": { "android": { "track": "internal" },   "ios": {} },
-    "qa":      { "android": { "track": "beta" },       "ios": {} },
-    "prod":    { "android": { "track": "production" }, "ios": {} }
+    "dev": { "android": { "track": "internal" }, "ios": {} },
+    "staging": { "android": { "track": "internal" }, "ios": {} },
+    "qa": { "android": { "track": "beta" }, "ios": {} },
+    "prod": { "android": { "track": "production" }, "ios": {} }
   }
 }

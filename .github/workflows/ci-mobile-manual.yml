@@ -11,9 +11,9 @@ on:
       submit_to_stores:
         description: "Also submit build to stores?"
         required: false
-        default: 'false'
+        default: "false"
         type: choice
-        options: ['false', 'true']
+        options: ["false", "true"]
 
 jobs:
   build_and_submit:

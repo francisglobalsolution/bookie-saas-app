@@ -6,7 +6,7 @@ on:
 
 env:
   # Flip to 'true' later when you add store credentials
-  SUBMIT_TO_STORES: 'false'
+  SUBMIT_TO_STORES: "false"
 
 jobs:
   setup:
