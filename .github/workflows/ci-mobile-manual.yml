@@ -23,15 +23,26 @@ jobs:
       SUBMIT_TO_STORES: ${{ github.event.inputs.submit_to_stores }}
     steps:
       - uses: actions/checkout@v4
+
+      # Install toolchain & dependencies
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps (no audit)
+        run: npm ci --no-audit --fund=false
+
       - name: Setup Expo/EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EAS_TOKEN }}
 
+      # Build QA or Prod depending on the input
       - name: EAS build (${{ env.PROFILE }})
         run: eas build --profile "${PROFILE}" --platform all --non-interactive --wait
 
+      # Optional store submissions (guarded by the input)
       - name: Submit Android (${{ env.PROFILE }})
         if: env.SUBMIT_TO_STORES == 'true'
         run: eas submit -p android --profile "${PROFILE}" --latest --non-interactive
