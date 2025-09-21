@@ -76,3 +76,23 @@ node_modules
 *.apk
 *.aab
 android/app/build/
+
+
+# .easignore
+# Android/iOS build outputs
+android/app/build/
+android/.gradle/
+ios/build/
+.gradle/
+
+# Local build artifacts
+*.apk
+*.aab
+*.ipa
+*.app
+*.xcarchive
+build-*/
+
+# Misc
+.DS_Store
+*.log

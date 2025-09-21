@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "name": "bookie-saas-app",
+  "name": "bookappily-app",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {

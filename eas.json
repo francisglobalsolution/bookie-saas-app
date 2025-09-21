@@ -1,11 +1,19 @@
 {
-  "cli": { "version": ">= 10.0.0" },
+  "cli": {
+    "version": ">= 10.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
     "base": {
       "developmentClient": false,
       "autoIncrement": true,
-      "env": { "SENTRY_SKIP_AUTO_SETUP": "1" },
-      "android": { "buildType": "app-bundle" }
+      "env": {
+        "SENTRY_SKIP_AUTO_SETUP": "1"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "channel": "base"
     },
     "dev": {
       "extends": "base",
@@ -15,8 +23,14 @@
         "SENTRY_DSN": "@project:SENTRY_DSN_DEV",
         "USE_MOCKS": "@project:USE_MOCKS_DEV"
       },
-      "ios": { "autoIncrement": "buildNumber", "simulator": true },
-      "android": { "autoIncrement": "versionCode", "buildType": "apk" },
+      "ios": {
+        "autoIncrement": "buildNumber",
+        "simulator": true
+      },
+      "android": {
+        "autoIncrement": "versionCode",
+        "buildType": "apk"
+      },
       "distribution": "internal"
     },
     "staging": {
@@ -27,8 +41,14 @@
         "SENTRY_DSN": "@project:SENTRY_DSN_STAGING",
         "USE_MOCKS": "@project:USE_MOCKS_STAGING"
       },
-      "ios": { "autoIncrement": "buildNumber", "simulator": true },
-      "android": { "autoIncrement": "versionCode", "buildType": "apk" },
+      "ios": {
+        "autoIncrement": "buildNumber",
+        "simulator": true
+      },
+      "android": {
+        "autoIncrement": "versionCode",
+        "buildType": "apk"
+      },
       "distribution": "internal"
     },
     "qa": {
@@ -39,8 +59,12 @@
         "SENTRY_DSN": "@project:SENTRY_DSN_QA",
         "USE_MOCKS": "@project:USE_MOCKS_QA"
       },
-      "ios": { "autoIncrement": "buildNumber" },
-      "android": { "autoIncrement": "versionCode" }
+      "ios": {
+        "autoIncrement": "buildNumber"
+      },
+      "android": {
+        "autoIncrement": "versionCode"
+      }
     },
     "prod": {
       "extends": "base",
@@ -49,14 +73,38 @@
         "API_URL": "@project:API_URL_PROD",
         "SENTRY_DSN": "@project:SENTRY_DSN_PROD"
       },
-      "ios": { "autoIncrement": "buildNumber" },
-      "android": { "autoIncrement": "versionCode" }
+      "ios": {
+        "autoIncrement": "buildNumber"
+      },
+      "android": {
+        "autoIncrement": "versionCode"
+      }
     }
   },
   "submit": {
-    "dev": { "android": { "track": "internal" }, "ios": {} },
-    "staging": { "android": { "track": "internal" }, "ios": {} },
-    "qa": { "android": { "track": "beta" }, "ios": {} },
-    "prod": { "android": { "track": "production" }, "ios": {} }
+    "dev": {
+      "android": {
+        "track": "internal"
+      },
+      "ios": {}
+    },
+    "staging": {
+      "android": {
+        "track": "internal"
+      },
+      "ios": {}
+    },
+    "qa": {
+      "android": {
+        "track": "beta"
+      },
+      "ios": {}
+    },
+    "prod": {
+      "android": {
+        "track": "production"
+      },
+      "ios": {}
+    }
   }
 }
