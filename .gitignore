@@ -71,3 +71,8 @@ override.tf.json
 .terraformrc
 terraform.rc
 node_modules
+
+# Ignore local Android build outputs
+*.apk
+*.aab
+android/app/build/
