@@ -47,6 +47,13 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EAS_TOKEN }}
+
+      # 🔎 Helpful prechecks
+      - name: Show Expo config (ios.infoPlist check)
+        run: npx --yes expo config --json | jq '.ios.infoPlist'
+      - name: Expo Doctor
+        run: npx --yes expo-doctor || true
+
       # Build both platforms for 'dev'
       - name: EAS build (dev)
         run: eas build --profile dev --platform all --non-interactive --wait
@@ -76,6 +83,13 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EAS_TOKEN }}
+
+      # 🔎 Helpful prechecks
+      - name: Show Expo config (ios.infoPlist check)
+        run: npx --yes expo config --json | jq '.ios.infoPlist'
+      - name: Expo Doctor
+        run: npx --yes expo-doctor || true
+
       - name: EAS build (staging)
         run: eas build --profile staging --platform all --non-interactive --wait
       - name: Submit Android (staging)

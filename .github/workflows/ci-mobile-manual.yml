@@ -38,7 +38,13 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EAS_TOKEN }}
 
-      # Build QA or Prod depending on the input
+      # Optional prechecks (helps catch iOS plist issues early)
+      - name: Show Expo config (verify ios.infoPlist)
+        run: npx --yes expo config --json | jq '.ios.infoPlist'
+      - name: Expo Doctor (non-blocking)
+        run: npx --yes expo-doctor || true
+
+      # Build for selected environment (qa/prod)
       - name: EAS build (${{ env.PROFILE }})
         run: eas build --profile "${PROFILE}" --platform all --non-interactive --wait
 
