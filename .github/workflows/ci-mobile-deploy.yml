@@ -1,0 +1,70 @@
+name: Mobile Deploy (Dev & Staging)
+
+on:
+  push:
+    branches: [main]
+
+env:
+  # Flip to 'true' later when you add store credentials
+  SUBMIT_TO_STORES: "false"
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.meta.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps (no audit)
+        run: npm ci --no-audit --fund=false
+      - name: Setup Expo/EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EAS_TOKEN }}
+
+  build_dev:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Expo/EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EAS_TOKEN }}
+      # Build both platforms for 'dev'
+      - name: EAS build (dev)
+        run: eas build --profile dev --platform all --non-interactive --wait
+      # Guarded submissions (skipped while SUBMIT_TO_STORES='false')
+      - name: Submit Android (dev)
+        if: env.SUBMIT_TO_STORES == 'true'
+        run: eas submit -p android --profile dev --latest --non-interactive
+      - name: Submit iOS (dev)
+        if: env.SUBMIT_TO_STORES == 'true'
+        run: eas submit -p ios --profile dev --latest --non-interactive
+
+  build_staging:
+    needs: [setup, build_dev]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Expo/EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EAS_TOKEN }}
+      - name: EAS build (staging)
+        run: eas build --profile staging --platform all --non-interactive --wait
+      - name: Submit Android (staging)
+        if: env.SUBMIT_TO_STORES == 'true'
+        run: eas submit -p android --profile staging --latest --non-interactive
+      - name: Submit iOS (staging)
+        if: env.SUBMIT_TO_STORES == 'true'
+        run: eas submit -p ios --profile staging --latest --non-interactive
